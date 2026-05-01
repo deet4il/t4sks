@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GWAPO DO THESE</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#4c1d95">
+    
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: white; min-height: 100vh; }
+        .pixel-font { font-family: 'Press+Start+2P', cursive; }
+        
+        .header-bg { background: linear-gradient(180deg, #6b21a8 0%, #4c1d95 100%); border-bottom: 6px solid #000; }
+        
+        .task-card { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s; }
+        .task-card:hover { border-color: #a855f7; transform: translateX(4px); }
+        
+        .xp-glow { box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
+        .pixelated { image-rendering: pixelated; }
+    </style>
+</head>
+<body class="pb-24">
+
+    <header class="header-bg w-full py-8 text-center shadow-2xl mb-8">
+        <h1 class="pixel-font text-xl text-white tracking-tighter">GWAPO DO THESE</h1>
+        <div class="flex justify-center gap-10 mt-4">
+            <div class="text-center">
+                <p class="text-[7px] pixel-font text-purple-300 mb-1">QUESTS DONE</p>
+                <p id="stat-done" class="text-lg font-black">0</p>
+            </div>
+            <div class="text-center">
+                <p class="text-[7px] pixel-font text-purple-300 mb-1">COMPLETION</p>
+                <p id="stat-percent" class="text-lg font-black text-purple-400">0%</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-xl mx-auto px-4">
+        
+        <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-10 shadow-xl">
+            <div class="flex gap-2">
+                <input id="taskInput" type="text" placeholder="Assign a new mission..." 
+                    onkeypress="if(event.key === 'Enter') addQuest()"
+                    class="flex-grow bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none transition-all">
+                <button onclick="addQuest()" class="bg-purple-600 hover:bg-purple-500 text-white px-6 rounded-xl font-bold transition-transform active:scale-95">
+                    +
+                </button>
+            </div>
+        </div>
+
+        <div class="mb-12">
+            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 flex justify-between items-center tracking-widest">
+                <span>ACTIVE MISSIONS</span>
+                <span id="pendingCount" class="bg-red-900/30 text-red-400 px-2 py-1 rounded text-[7px]">0 PENDING</span>
+            </h2>
+            <div id="activeList" class="space-y-3">
+                </div>
+        </div>
+
+        <div>
+            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 tracking-widest">MISSION REPORT</h2>
+            <div id="doneList" class="space-y-2 opacity-60">
+                </div>
+        </div>
+
+        <div class="mt-16 pt-8 border-t border-slate-800 flex justify-between items-center">
+            <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-600 hover:text-red-500 transition">WIPE DATA</button>
+            <p class="text-[8px] pixel-font text-slate-800 uppercase">Master Ball OS v6.0</p>
+        </div>
+    </div>
+
+    <script>
+        let quests = JSON.parse(localStorage.getItem('gwapo_tasks_v1')) || [];
+
+        function addQuest() {
+            const input = document.getElementById('taskInput');
+            if (!input.value.trim()) return;
+
+            // Generate a random Pokemon sprite ID
+            const pokeID = Math.floor(Math.random() * 898) + 1;
+            
+            quests.push({
+                id: Date.now(),
+                text: input.value.trim(),
+                pokeID: pokeID,
+                completed: false
+            });
+
+            input.value = '';
+            save();
+        }
+
+        function toggleQuest(id) {
+            const q = quests.find(i => i.id === id);
+            q.completed = !q.completed;
+            save();
+        }
+
+        function deleteQuest(id) {
+            if(confirm("Discard this mission?")) {
+                quests = quests.filter(i => i.id !== id);
+                save();
+            }
+        }
+
+        function save() {
+            localStorage.setItem('gwapo_tasks_v1', JSON.stringify(quests));
+            render();
+        }
+
+        function render() {
+            const activeList = document.getElementById('activeList');
+            const doneList = document.getElementById('doneList');
+            activeList.innerHTML = '';
+            doneList.innerHTML = '';
+
+            let doneCount = 0;
+
+            quests.forEach(q => {
+                const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
+                
+                if (!q.completed) {
+                    activeList.innerHTML += `
+                        <div class="task-card p-3 rounded-xl flex items-center gap-4 group">
+                            <img src="${sprite}" class="w-12 h-12 pixelated brightness-0 opacity-20 group-hover:opacity-60 transition-opacity">
+                            <p class="flex-grow text-sm font-semibold text-slate-200">${q.text}</p>
+                            <div class="flex gap-2">
+                                <button onclick="toggleQuest(${q.id})" class="p-2 hover:text-green-400 transition text-lg">✓</button>
+                                <button onclick="deleteQuest(${q.id})" class="p-2 hover:text-red-400 transition text-lg">✕</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    doneCount++;
+                    doneList.innerHTML += `
+                        <div class="flex items-center gap-3 p-2 bg-slate-900/30 rounded-lg border border-slate-800">
+                            <img src="${sprite}" class="w-8 h-8 pixelated">
+                            <p class="flex-grow text-xs line-through text-slate-500">${q.text}</p>
+                            <button onclick="toggleQuest(${q.id})" class="text-[10px] text-slate-600 px-2">Undo</button>
+                        </div>
+                    `;
+                }
+            });
+
+            const total = quests.length;
+            const percent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+            document.getElementById('stat-done').innerText = doneCount;
+            document.getElementById('stat-percent').innerText = percent + '%';
+            document.getElementById('pendingCount').innerText = (total - doneCount) + " PENDING";
+        }
+
+        function clearAll() {
+            if(confirm("Warning: This will delete all your quests forever. Proceed?")) {
+                quests = [];
+                save();
+            }
+        }
+
+        render();
+    </script>
+</body>
+</html>

@@ -1,5 +1,4 @@
-// This is a "pass-through" service worker. 
-// It's the minimum requirement to make an app installable.
+// The "Engine" that makes your app work offline
 self.addEventListener('fetch', (event) => {
-  // We'll leave this empty for now so it doesn't cache old versions of your Beyblade list!
+  // We're leaving this empty to ensure your tasks update instantly
 });

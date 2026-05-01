@@ -30,18 +30,10 @@
         .task-card { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s; }
         .pixelated { image-rendering: pixelated; }
         .dex-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
-        
-        /* Story Mode Styles */
-        .category-header { 
-            border-left: 4px solid #a855f7; 
-            padding-left: 12px;
-            margin-top: 24px;
-            margin-bottom: 12px;
-        }
-        select { background-image: none; appearance: none; }
+        .category-header { border-left: 4px solid #a855f7; padding-left: 12px; margin-top: 24px; margin-bottom: 12px; }
     </style>
 </head>
-<body class="pb-24">
+<body class="pb-24 text-left">
 
     <header class="header-bg w-full py-6 text-center shadow-2xl mb-8">
         <h1 class="pixel-font text-lg text-white mb-4 uppercase tracking-tighter">Gotta Do 'Em All</h1>
@@ -68,7 +60,7 @@
 
     <div class="max-w-xl mx-auto px-4">
         
-        <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-8 shadow-xl">
+        <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-8 shadow-xl text-left">
             <div class="flex flex-col gap-3">
                 <div class="flex gap-2">
                     <input id="taskInput" type="text" placeholder="Add a new quest..." 
@@ -76,48 +68,55 @@
                         class="flex-grow bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500 transition-all">
                     <button id="addButton" onclick="addQuest()" class="bg-purple-600 hover:bg-purple-500 text-white px-6 rounded-xl font-bold">+</button>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="pixel-font text-[7px] text-slate-500 uppercase">Select Mission:</span>
-                    <select id="categorySelect" class="bg-slate-800 border border-slate-700 text-xs px-3 py-1 rounded-lg outline-none text-purple-300">
-                        <option value="Main Story">Main Story</option>
-                        <option value="PhD ARC">PhD ARC</option>
-                        <option value="Daily Mission">Daily Mission</option>
-                        <option value="Side Quest">Side Quest</option>
-                    </select>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="pixel-font text-[7px] text-slate-500 uppercase">Current Mission:</span>
+                        <select id="categorySelect" class="bg-slate-800 border border-slate-700 text-[10px] px-2 py-1 rounded-lg outline-none text-purple-300">
+                            </select>
+                    </div>
+                    <button onclick="manageMissions()" class="text-[7px] pixel-font text-purple-500 hover:text-white uppercase tracking-tighter">Manage Arcs</button>
                 </div>
             </div>
         </div>
 
-        <div class="mb-10">
+        <div id="missionManager" class="hidden bg-purple-900/20 p-4 rounded-xl border border-purple-500/30 mb-8 text-left">
+            <h3 class="pixel-font text-[8px] mb-4 text-purple-300 uppercase">Mission Architect</h3>
+            <div class="flex gap-2 mb-4">
+                <input id="newCatInput" type="text" placeholder="Define New Arc..." class="flex-grow bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-xs outline-none">
+                <button onclick="addNewCategory()" class="bg-purple-500 text-white px-4 rounded-lg text-xs font-bold">CREATE</button>
+            </div>
+            <div id="catList" class="flex flex-wrap gap-2"></div>
+            <button onclick="manageMissions()" class="mt-4 text-[7px] pixel-font text-slate-400 block mx-auto uppercase">Close Architect</button>
+        </div>
+
+        <div class="mb-10 text-left">
             <h2 class="pixel-font text-[9px] mb-4 text-slate-500 flex justify-between items-center tracking-widest uppercase">
                 <span>Active Campaign</span>
                 <span id="pendingCount" class="bg-red-900/30 text-red-400 px-2 py-1 rounded text-[7px]">0 ONGOING</span>
             </h2>
-            <div id="storyContainer" class="space-y-6">
-                </div>
+            <div id="storyContainer" class="space-y-6"></div>
         </div>
 
         <div class="mt-12 p-4 bg-black/30 rounded-2xl border border-slate-800">
             <h2 class="pixel-font text-[9px] mb-6 text-green-500 tracking-widest text-center uppercase">Pokédex</h2>
-            <div id="collectionGrid" class="grid grid-cols-3 gap-3"></div>
+            <div id="collectionGrid" class="grid grid-cols-3 gap-3 text-center"></div>
         </div>
 
         <div class="mt-8 text-center">
-            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 tracking-widest uppercase text-center">Mission Report</h2>
+            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 tracking-widest uppercase">Mission Report</h2>
             <div id="doneList" class="space-y-2 opacity-60"></div>
         </div>
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center">
-            <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase">Delete All Quests</button>
-            <p class="text-[8px] pixel-font text-slate-900 mt-4 uppercase">Master Ball OS v8.0</p>
+            <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase">Delete All Data</button>
+            <p class="text-[8px] pixel-font text-slate-900 mt-4 uppercase">Master Ball OS v10.0</p>
         </div>
     </div>
 
     <script>
-        // Story Mode Categories
-        const categories = ["Main Story", "PhD ARC", "Daily Mission", "Side Quest"];
-
-        let quests = JSON.parse(localStorage.getItem('gwapo_tasks_v4')) || [];
+        // Start with an empty array. No hardcoded missions.
+        let categories = JSON.parse(localStorage.getItem('gwapo_categories_v2')) || [];
+        let quests = JSON.parse(localStorage.getItem('gwapo_tasks_v5')) || [];
         let dex = JSON.parse(localStorage.getItem('gwapo_dex_v3')) || [];
         let totalXP = JSON.parse(localStorage.getItem('gwapo_xp')) || 0;
 
@@ -126,8 +125,14 @@
             const categorySelect = document.getElementById('categorySelect');
             const btn = document.getElementById('addButton');
             
-            if (!input.value.trim()) return;
+            // 1. Check if missions exist
+            if (categories.length === 0) {
+                alert("Please create a Mission Arc first!");
+                manageMissions();
+                return;
+            }
 
+            if (!input.value.trim()) return;
             btn.innerText = "...";
             btn.disabled = true;
 
@@ -141,7 +146,7 @@
                 quests.push({
                     id: Date.now(),
                     text: input.value.trim(),
-                    category: categorySelect.value, // Story Category saved here
+                    category: categorySelect.value,
                     pokeID: pokeID,
                     pokeName: pokeName,
                     completed: false
@@ -158,15 +163,54 @@
             }
         }
 
+        // --- MISSION MANAGEMENT ---
+        function manageMissions() {
+            const manager = document.getElementById('missionManager');
+            manager.classList.toggle('hidden');
+            renderCategories();
+        }
+
+        function addNewCategory() {
+            const input = document.getElementById('newCatInput');
+            const newName = input.value.trim();
+            if (newName && !categories.includes(newName)) {
+                categories.push(newName);
+                input.value = '';
+                saveCategories();
+            }
+        }
+
+        function removeCategory(cat) {
+            if (confirm(`Delete the "${cat}" Arc? Tasks inside will lose their category label.`)) {
+                categories = categories.filter(c => c !== cat);
+                saveCategories();
+            }
+        }
+
+        function saveCategories() {
+            localStorage.setItem('gwapo_categories_v2', JSON.stringify(categories));
+            render();
+        }
+
+        function renderCategories() {
+            const catList = document.getElementById('catList');
+            catList.innerHTML = '';
+            categories.forEach(cat => {
+                catList.innerHTML += `
+                    <div class="bg-purple-500/20 border border-purple-500/50 px-3 py-1 rounded-full flex items-center gap-2">
+                        <span class="text-[9px] text-purple-200">${cat}</span>
+                        <button onclick="removeCategory('${cat}')" class="text-purple-400 font-bold hover:text-red-400">×</button>
+                    </div>
+                `;
+            });
+        }
+
         function toggleQuest(id) {
             const q = quests.find(i => i.id === id);
             q.completed = !q.completed;
-            
             if (q.completed) {
                 totalXP += 50; 
-                if (!dex.find(p => p.pokeID === q.pokeID)) {
-                    dex.push({ pokeID: q.pokeID, pokeName: q.pokeName });
-                }
+                if (!dex.find(p => p.pokeID === q.pokeID)) dex.push({ pokeID: q.pokeID, pokeName: q.pokeName });
             } else {
                 totalXP = Math.max(0, totalXP - 50);
             }
@@ -181,7 +225,7 @@
         }
 
         function save() {
-            localStorage.setItem('gwapo_tasks_v4', JSON.stringify(quests));
+            localStorage.setItem('gwapo_tasks_v5', JSON.stringify(quests));
             localStorage.setItem('gwapo_dex_v3', JSON.stringify(dex));
             localStorage.setItem('gwapo_xp', JSON.stringify(totalXP));
             render();
@@ -191,15 +235,30 @@
             const storyContainer = document.getElementById('storyContainer');
             const collectionGrid = document.getElementById('collectionGrid');
             const doneList = document.getElementById('doneList');
+            const categorySelect = document.getElementById('categorySelect');
+
+            // Update Dropdown
+            const currentSelected = categorySelect.value;
+            categorySelect.innerHTML = '';
+            if (categories.length === 0) {
+                categorySelect.innerHTML = `<option disabled selected>No Arcs Created</option>`;
+            } else {
+                categories.forEach(cat => {
+                    categorySelect.innerHTML += `<option value="${cat}" ${cat === currentSelected ? 'selected' : ''}>${cat}</option>`;
+                });
+            }
 
             storyContainer.innerHTML = '';
             collectionGrid.innerHTML = '';
             doneList.innerHTML = '';
 
-            // Render Story Mode Groups
+            // If no categories, show empty state message
+            if (categories.length === 0) {
+                storyContainer.innerHTML = `<p class="text-[10px] text-slate-600 text-center py-10 italic">No Active Campaign. Use 'Manage Arcs' to begin.</p>`;
+            }
+
             categories.forEach(cat => {
                 const activeInCat = quests.filter(q => q.category === cat && !q.completed);
-                
                 if (activeInCat.length > 0) {
                     const section = document.createElement('div');
                     section.innerHTML = `
@@ -209,7 +268,6 @@
                         <div class="space-y-3" id="list-${cat.replace(/\s/g, '')}"></div>
                     `;
                     storyContainer.appendChild(section);
-
                     const listDiv = document.getElementById(`list-${cat.replace(/\s/g, '')}`);
                     activeInCat.forEach(q => {
                         const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
@@ -217,22 +275,17 @@
                             <div class="task-card p-3 rounded-xl flex items-center gap-4">
                                 <img src="${sprite}" class="w-12 h-12 pixelated brightness-0 opacity-10">
                                 <p class="flex-grow text-sm font-semibold text-slate-200">${q.text}</p>
-                                <button onclick="toggleQuest(${q.id})" class="p-2 text-green-400 text-lg">✓</button>
+                                <div class="flex gap-2">
+                                    <button onclick="toggleQuest(${q.id})" class="p-2 text-green-400 text-lg">✓</button>
+                                    <button onclick="deleteQuest(${q.id})" class="p-2 text-red-500 text-lg">×</button>
+                                </div>
                             </div>
                         `;
                     });
                 }
             });
 
-            // Handle legacy quests (ones without a category)
-            const legacyQuests = quests.filter(q => !q.category && !q.completed);
-            if (legacyQuests.length > 0) {
-                // Silently assign them to "Side Quest" or render them separately
-                legacyQuests.forEach(q => { q.category = "Side Quest"; });
-                save(); 
-            }
-
-            // Render Mission Report (Completed)
+            // Completed missions
             quests.filter(q => q.completed).forEach(q => {
                 const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
                 doneList.innerHTML += `
@@ -244,7 +297,6 @@
                 `;
             });
 
-            // Render Dex
             dex.forEach(p => {
                 const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokeID}.png`;
                 collectionGrid.innerHTML += `
@@ -264,15 +316,16 @@
             const percent = quests.length > 0 ? Math.round((completedCount / quests.length) * 100) : 0;
             document.getElementById('stat-percent').innerText = percent + '%';
             document.getElementById('pendingCount').innerText = (quests.length - completedCount) + " ONGOING";
+            renderCategories();
         }
 
         function catAbbreviation(cat) {
-            if (!cat) return "SQ";
-            return cat.split(' ').map(w => w[0]).join('');
+            if (!cat) return "??";
+            return cat.split(' ').map(w => w[0]).join('').toUpperCase();
         }
 
         function clearAll() {
-            if(confirm("Wipe all data?")) { localStorage.clear(); location.reload(); }
+            if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); }
         }
 
         render();

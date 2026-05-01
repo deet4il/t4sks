@@ -1,17 +1,16 @@
-const CACHE_NAME = 'gwapo-v1';
+const VERSION = 'v10.0'; // Increment this when you release new code
 
-// We "install" the service worker and create a cache
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(['./']);
-    })
-  );
+    // Install the new version in the background
+    console.log('Service Worker: Installing version', VERSION);
 });
 
-// We catch the fetch request to satisfy Chrome's "Offline" requirement
+self.addEventListener('message', (event) => {
+    if (event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting(); // The user clicked "Update" - take over now!
+    }
+});
+
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
+    event.respondWith(fetch(event.request));
 });

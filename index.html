@@ -212,7 +212,7 @@
             const completedCount = quests.filter(q => q.completed).length;
             const percent = quests.length > 0 ? Math.round((completedCount / quests.length) * 100) : 0;
             document.getElementById('stat-percent').innerText = percent + '%';
-            document.getElementById('pendingCount').innerText = (quests.length - completedCount) + " PENDING";
+            document.getElementById('pendingCount').innerText = (quests.length - completedCount) + " ONGOING";
         }
 
         function clearAll() {

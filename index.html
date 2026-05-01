@@ -129,7 +129,7 @@
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center">
             <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase">Delete All Data</button>
-            <p class="text-[8px] pixel-font text-slate-900 mt-4 uppercase">Master Ball OS v10.0</p>
+            <p class="text-[8px] pixel-font text-slate-900 mt-4 uppercase text-center">Master Ball OS v10.1 - UPDATE SUCCESSFUL</p>
         </div>
     </div>
 
@@ -139,7 +139,6 @@
         let dex = JSON.parse(localStorage.getItem('gwapo_dex_v3')) || [];
         let totalXP = JSON.parse(localStorage.getItem('gwapo_xp')) || 0;
 
-        // NEW: Function to manually trigger the Service Worker update
         function applyUpdate() {
             if (newWorker) {
                 newWorker.postMessage({ type: 'SKIP_WAITING' });

@@ -1,15 +1,16 @@
 {
   "name": "GWAPO DO THESE",
   "short_name": "GWAPO",
-  "start_url": "index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#4c1d95",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png",
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Master_Ball.svg/512px-Master_Ball.svg.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

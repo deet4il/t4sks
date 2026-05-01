@@ -3,105 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GWAPO DO THESE</title>
-    
+    <title>GOTTA DO 'EM ALL</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4c1d95">
-    
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/188/188918.png">
 
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker Active!', reg.scope))
-            .catch(err => console.log('Service Worker Failed:', err));
-        });
+        window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
       }
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap');
-        
         body { font-family: 'Inter', sans-serif; background-color: #020617; color: white; min-height: 100vh; }
-        
-        /* FIXED: Removed the '+' from the font name so it loads correctly in CSS */
         .pixel-font { font-family: 'Press Start 2P', cursive; }
-        
         .header-bg { background: linear-gradient(180deg, #6b21a8 0%, #4c1d95 100%); border-bottom: 6px solid #000; }
+        
+        /* XP BAR STYLING */
+        .xp-bar-container { background: #1e1b4b; border: 2px solid #000; height: 12px; border-radius: 6px; overflow: hidden; }
+        #xp-fill { background: linear-gradient(90deg, #22c55e, #4ade80); width: 0%; transition: width 0.5s ease-in-out; height: 100%; }
+
         .task-card { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s; }
         .task-card:hover { border-color: #a855f7; transform: translateX(4px); }
-        .xp-glow { box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
         .pixelated { image-rendering: pixelated; }
+        
+        /* COLLECTION GRID */
+        .dex-card { background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.1); }
     </style>
 </head>
 <body class="pb-24">
 
-    <header class="header-bg w-full py-8 text-center shadow-2xl mb-8">
-        <h1 class="pixel-font text-xl text-white tracking-tighter">GWAPO DO THESE</h1>
-        <div class="flex justify-center gap-10 mt-4">
+    <header class="header-bg w-full py-6 text-center shadow-2xl mb-8">
+        <h1 class="pixel-font text-lg text-white mb-4">GWAPO OS v2.0</h1>
+        
+        <div class="max-w-xs mx-auto px-4">
+            <div class="flex justify-between items-center mb-1">
+                <span class="pixel-font text-[7px] text-green-400">XP LEVEL</span>
+                <span id="xp-text" class="pixel-font text-[7px]">0 XP</span>
+            </div>
+            <div class="xp-bar-container">
+                <div id="xp-fill"></div>
+            </div>
+        </div>
+
+        <div class="flex justify-center gap-10 mt-6">
             <div class="text-center">
-                <p class="text-[7px] pixel-font text-purple-300 mb-1">QUESTS DONE</p>
-                <p id="stat-done" class="text-lg font-black">0</p>
+                <p class="text-[7px] pixel-font text-purple-300 mb-1">DEX COUNT</p>
+                <p id="stat-dex" class="text-lg font-black text-white">0</p>
             </div>
             <div class="text-center">
-                <p class="text-[7px] pixel-font text-purple-300 mb-1">COMPLETION</p>
+                <p class="text-[7px] pixel-font text-purple-300 mb-1">SUCCESS</p>
                 <p id="stat-percent" class="text-lg font-black text-purple-400">0%</p>
             </div>
         </div>
     </header>
 
     <div class="max-w-xl mx-auto px-4">
-        <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-10 shadow-xl">
+        <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-8 shadow-xl">
             <div class="flex gap-2">
                 <input id="taskInput" type="text" placeholder="Assign a new mission..." 
                     onkeypress="if(event.key === 'Enter') addQuest()"
-                    class="flex-grow bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none transition-all">
-                <button onclick="addQuest()" class="bg-purple-600 hover:bg-purple-500 text-white px-6 rounded-xl font-bold transition-transform active:scale-95">
-                    +
-                </button>
+                    class="flex-grow bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500">
+                <button onclick="addQuest()" class="bg-purple-600 hover:bg-purple-500 px-6 rounded-xl font-bold">+</button>
             </div>
         </div>
 
-        <div class="mb-12">
-            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 flex justify-between items-center tracking-widest">
-                <span>ACTIVE MISSIONS</span>
-                <span id="pendingCount" class="bg-red-900/30 text-red-400 px-2 py-1 rounded text-[7px]">0 PENDING</span>
-            </h2>
+        <div class="mb-10">
+            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 tracking-widest uppercase">Active Quests</h2>
             <div id="activeList" class="space-y-3"></div>
         </div>
 
-        <div>
-            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 tracking-widest">MISSION REPORT</h2>
-            <div id="doneList" class="space-y-2 opacity-60"></div>
+        <div class="mt-12 p-4 bg-black/30 rounded-2xl border border-slate-800">
+            <h2 class="pixel-font text-[9px] mb-4 text-green-500 tracking-widest text-center">COLLECTED GEAR</h2>
+            <div id="collectionGrid" class="grid grid-cols-6 gap-2">
+                </div>
         </div>
 
-        <div class="mt-16 pt-8 border-t border-slate-800 flex justify-between items-center">
-            <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-600 hover:text-red-500 transition">WIPE DATA</button>
-            <p class="text-[8px] pixel-font text-slate-800 uppercase">Master Ball OS v6.0</p>
+        <div class="mt-16 pt-8 border-t border-slate-800 text-center">
+            <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition">WIPE OS DATA</button>
         </div>
     </div>
 
     <script>
-        let quests = JSON.parse(localStorage.getItem('gwapo_tasks_v1')) || [];
+        // 1. SOUND EFFECTS
+        const catchSound = new Audio('https://files.catbox.moe/6v7h90.mp3'); 
+
+        // 2. STATE LOGIC
+        let quests = JSON.parse(localStorage.getItem('gwapo_tasks_v2')) || [];
+        let dex = JSON.parse(localStorage.getItem('gwapo_dex')) || [];
+        let totalXP = JSON.parse(localStorage.getItem('gwapo_xp')) || 0;
 
         function addQuest() {
             const input = document.getElementById('taskInput');
             if (!input.value.trim()) return;
-
-            const pokeID = Math.floor(Math.random() * 898) + 1;
-            
-            quests.push({
-                id: Date.now(),
-                text: input.value.trim(),
-                pokeID: pokeID,
-                completed: false
-            });
-
+            const pokeID = Math.floor(Math.random() * 649) + 1; // Gen 1-5 for better sprites
+            quests.push({ id: Date.now(), text: input.value.trim(), pokeID: pokeID, completed: false });
             input.value = '';
             save();
         }
@@ -109,66 +107,64 @@
         function toggleQuest(id) {
             const q = quests.find(i => i.id === id);
             q.completed = !q.completed;
+            
+            if (q.completed) {
+                // Trigger Level Up Vibe
+                catchSound.play();
+                totalXP += 50; 
+                if (!dex.includes(q.pokeID)) dex.push(q.pokeID);
+            } else {
+                totalXP = Math.max(0, totalXP - 50);
+            }
             save();
         }
 
-        function deleteQuest(id) {
-            if(confirm("Discard this mission?")) {
-                quests = quests.filter(i => i.id !== id);
-                save();
-            }
-        }
-
         function save() {
-            localStorage.setItem('gwapo_tasks_v1', JSON.stringify(quests));
+            localStorage.setItem('gwapo_tasks_v2', JSON.stringify(quests));
+            localStorage.setItem('gwapo_dex', JSON.stringify(dex));
+            localStorage.setItem('gwapo_xp', JSON.stringify(totalXP));
             render();
         }
 
         function render() {
             const activeList = document.getElementById('activeList');
-            const doneList = document.getElementById('doneList');
+            const collectionGrid = document.getElementById('collectionGrid');
             activeList.innerHTML = '';
-            doneList.innerHTML = '';
+            collectionGrid.innerHTML = '';
 
-            let doneCount = 0;
-
-            quests.forEach(q => {
+            // Render Active Tasks
+            quests.filter(q => !q.completed).forEach(q => {
                 const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
-                
-                if (!q.completed) {
-                    activeList.innerHTML += `
-                        <div class="task-card p-3 rounded-xl flex items-center gap-4 group">
-                            <img src="${sprite}" class="w-12 h-12 pixelated brightness-0 opacity-20 group-hover:opacity-60 transition-opacity">
-                            <p class="flex-grow text-sm font-semibold text-slate-200">${q.text}</p>
-                            <div class="flex gap-2">
-                                <button onclick="toggleQuest(${q.id})" class="p-2 hover:text-green-400 transition text-lg">✓</button>
-                                <button onclick="deleteQuest(${q.id})" class="p-2 hover:text-red-400 transition text-lg">✕</button>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    doneCount++;
-                    doneList.innerHTML += `
-                        <div class="flex items-center gap-3 p-2 bg-slate-900/30 rounded-lg border border-slate-800">
-                            <img src="${sprite}" class="w-8 h-8 pixelated">
-                            <p class="flex-grow text-xs line-through text-slate-500">${q.text}</p>
-                            <button onclick="toggleQuest(${q.id})" class="text-[10px] text-slate-600 px-2">Undo</button>
-                        </div>
-                    `;
-                }
+                activeList.innerHTML += `
+                    <div class="task-card p-3 rounded-xl flex items-center gap-4 group">
+                        <img src="${sprite}" class="w-12 h-12 pixelated brightness-0 opacity-10">
+                        <p class="flex-grow text-sm font-semibold">${q.text}</p>
+                        <button onclick="toggleQuest(${q.id})" class="p-2 hover:text-green-400 text-lg">✓</button>
+                    </div>
+                `;
             });
 
-            const total = quests.length;
-            const percent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
-            document.getElementById('stat-done').innerText = doneCount;
+            // Render Collection Logic
+            dex.forEach(id => {
+                const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+                collectionGrid.innerHTML += `<div class="dex-card p-1 rounded-lg"><img src="${sprite}" class="w-full pixelated"></div>`;
+            });
+
+            // Update XP Bar & Stats
+            document.getElementById('stat-dex').innerText = dex.length;
+            document.getElementById('xp-text').innerText = totalXP + " XP";
+            const levelProgress = (totalXP % 500) / 5; // Level every 500 XP
+            document.getElementById('xp-fill').style.width = levelProgress + "%";
+            
+            const completed = quests.filter(q => q.completed).length;
+            const percent = quests.length > 0 ? Math.round((completed / quests.length) * 100) : 0;
             document.getElementById('stat-percent').innerText = percent + '%';
-            document.getElementById('pendingCount').innerText = (total - doneCount) + " PENDING";
         }
 
         function clearAll() {
-            if(confirm("Warning: This will delete all your quests forever. Proceed?")) {
-                quests = [];
-                save();
+            if(confirm("Wipe all XP and Collection?")) {
+                localStorage.clear();
+                location.reload();
             }
         }
 

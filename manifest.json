@@ -1,6 +1,6 @@
 {
-  "name": "GWAPO DO THESE",
-  "short_name": "GWAPO",
+  "name": "GOTTA DO 'EM ALL",
+  "short_name": "PokeTask",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#020617",

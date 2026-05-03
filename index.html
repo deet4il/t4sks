@@ -15,26 +15,19 @@
 
     <script>
         let newWorker;
-
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => {
                 reg.addEventListener('updatefound', () => {
                     newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {
-                        // Check if the new code has finished downloading
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // Show the purple "New Patch" bar
                             document.getElementById('updateToast').classList.remove('hidden');
                         }
                     });
                 });
             });
         }
-
-        // Reload the page automatically once the new worker takes over
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            window.location.reload();
-        });
+        navigator.serviceWorker.addEventListener('controllerchange', () => { window.location.reload(); });
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -46,9 +39,21 @@
         .xp-bar-container { background: #1e1b4b; border: 2px solid #000; height: 12px; border-radius: 6px; overflow: hidden; }
         #xp-fill { background: linear-gradient(90deg, #22c55e, #4ade80); width: 0%; transition: width 0.5s ease-in-out; height: 100%; }
         .task-card { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s; }
+        .master-priority { 
+            background: rgba(168, 85, 247, 0.2) !important; 
+            border: 2px solid #a855f7 !important;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+        }
         .pixelated { image-rendering: pixelated; }
         .dex-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
         .category-header { border-left: 4px solid #a855f7; padding-left: 12px; margin-top: 24px; margin-bottom: 12px; }
+        
+        /* SHINY GLOW */
+        .shiny-card { background: radial-gradient(circle, rgba(253,224,71,0.15) 0%, rgba(30,41,59,0.4) 100%) !important; border: 1px solid #fde047 !important; }
+        
+        /* LEVEL UP POPUP */
+        @keyframes levelUp { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+        .lvl-anim { animation: levelUp 2s ease-out forwards; }
     </style>
 </head>
 <body class="pb-24 text-left">
@@ -57,25 +62,36 @@
         <button onclick="applyUpdate()" class="bg-white text-purple-600 px-3 py-1 rounded-lg font-bold text-[10px] uppercase">Update</button>
     </div>
 
+    <div id="lvlOverlay" class="hidden fixed inset-0 flex items-center justify-center z-[100] pointer-events-none">
+        <h2 class="pixel-font text-2xl text-yellow-400 drop-shadow-lg">LEVEL UP!</h2>
+    </div>
+
     <header class="header-bg w-full py-6 text-center shadow-2xl mb-8">
-        <h1 class="pixel-font text-lg text-white mb-4 uppercase tracking-tighter">Gotta Do 'Em All</h1>
+        <h1 class="pixel-font text-lg text-white mb-2 uppercase tracking-tighter">Master Ball OS</h1>
+        <p id="rank-text" class="pixel-font text-[7px] text-purple-300 mb-4 uppercase">Novice Trainer</p>
         
+        <div class="flex justify-center gap-2 mb-4" id="badge-container">
+            </div>
+
         <div class="max-w-xs mx-auto px-4">
-            <div class="flex justify-between items-center mb-1">
-                <span class="pixel-font text-[7px] text-green-400">XP LEVEL</span>
-                <span id="xp-text" class="pixel-font text-[7px]">0 XP</span>
+            <div class="flex justify-between items-end mb-1">
+                <span id="lvl-text" class="pixel-font text-[9px] text-green-400 font-bold">LVL 1</span>
+                <span id="xp-text" class="pixel-font text-[7px]">0 / 500 XP</span>
             </div>
             <div class="xp-bar-container"><div id="xp-fill"></div></div>
         </div>
 
         <div class="flex justify-center gap-10 mt-6">
             <div class="text-center">
-                <p class="text-[7px] pixel-font text-purple-300 mb-1">DEX COUNT</p>
+                <p class="text-[7px] pixel-font text-purple-300 mb-1">DEX</p>
                 <p id="stat-dex" class="text-lg font-black text-white">0</p>
             </div>
             <div class="text-center">
-                <p class="text-[7px] pixel-font text-purple-300 mb-1">SUCCESS</p>
-                <p id="stat-percent" class="text-lg font-black text-purple-400">0%</p>
+                <p class="text-[7px] pixel-font text-purple-300 mb-1">M-CHARGES</p>
+                <div class="flex items-center gap-1">
+                    <p id="stat-charges" class="text-lg font-black text-purple-400">0</p>
+                    <div id="charge-dots" class="flex gap-0.5 mt-1"></div>
+                </div>
             </div>
         </div>
     </header>
@@ -84,29 +100,29 @@
         <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-8 shadow-xl text-left">
             <div class="flex flex-col gap-3">
                 <div class="flex gap-2">
-                    <input id="taskInput" type="text" placeholder="Add a new quest..." 
+                    <input id="taskInput" type="text" placeholder="Assign new quest..." 
                         onkeypress="if(event.key === 'Enter') addQuest()"
-                        class="flex-grow bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500 transition-all">
+                        class="flex-grow bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500">
                     <button id="addButton" onclick="addQuest()" class="bg-purple-600 hover:bg-purple-500 text-white px-6 rounded-xl font-bold">+</button>
                 </div>
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <span class="pixel-font text-[7px] text-slate-500 uppercase">Current Mission:</span>
+                        <span class="pixel-font text-[7px] text-slate-500 uppercase">Mission:</span>
                         <select id="categorySelect" class="bg-slate-800 border border-slate-700 text-[10px] px-2 py-1 rounded-lg outline-none text-purple-300"></select>
                     </div>
-                    <button onclick="manageMissions()" class="text-[7px] pixel-font text-purple-500 hover:text-white uppercase tracking-tighter">Manage Arcs</button>
+                    <button onclick="manageMissions()" class="text-[7px] pixel-font text-purple-500 hover:text-white uppercase tracking-tighter">Edit Arcs</button>
                 </div>
             </div>
         </div>
 
-        <div id="missionManager" class="hidden bg-purple-900/20 p-4 rounded-xl border border-purple-500/30 mb-8 text-left">
-            <h3 class="pixel-font text-[8px] mb-4 text-purple-300 uppercase">Mission Architect</h3>
+        <div id="missionManager" class="hidden bg-purple-900/20 p-4 rounded-xl border border-purple-500/30 mb-8">
+            <h3 class="pixel-font text-[8px] mb-4 text-purple-300 uppercase">Architect</h3>
             <div class="flex gap-2 mb-4">
-                <input id="newCatInput" type="text" placeholder="Define New Arc..." class="flex-grow bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-xs outline-none">
-                <button onclick="addNewCategory()" class="bg-purple-500 text-white px-4 rounded-lg text-xs font-bold">CREATE</button>
+                <input id="newCatInput" type="text" placeholder="New Arc..." class="flex-grow bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-xs outline-none">
+                <button onclick="addNewCategory()" class="bg-purple-500 text-white px-4 rounded-lg text-xs font-bold">ADD</button>
             </div>
             <div id="catList" class="flex flex-wrap gap-2"></div>
-            <button onclick="manageMissions()" class="mt-4 text-[7px] pixel-font text-slate-400 block mx-auto uppercase">Close Architect</button>
+            <button onclick="manageMissions()" class="mt-4 text-[7px] pixel-font text-slate-400 block mx-auto uppercase">Close</button>
         </div>
 
         <div class="mb-10 text-left">
@@ -118,7 +134,7 @@
         </div>
 
         <div class="mt-12 p-4 bg-black/30 rounded-2xl border border-slate-800">
-            <h2 class="pixel-font text-[9px] mb-6 text-green-500 tracking-widest text-center uppercase">Pokédex</h2>
+            <h2 class="pixel-font text-[9px] mb-6 text-green-500 tracking-widest text-center uppercase">Master Dex</h2>
             <div id="collectionGrid" class="grid grid-cols-3 gap-3 text-center"></div>
         </div>
 
@@ -127,220 +143,204 @@
             <div id="doneList" class="space-y-2 opacity-60"></div>
         </div>
 
-        <div class="mt-16 pt-8 border-t border-slate-800 text-center">
-            <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase">Delete All Data</button>
-            <p class="text-[8px] pixel-font text-slate-900 mt-4 uppercase text-center">Master Ball OS v10.1 - UPDATE SUCCESSFUL</p>
+        <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
+            <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase mb-4">Wipe Data</button>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">Master Ball OS v11.0</p>
+            <p class="text-[7px] pixel-font text-slate-700 uppercase mt-2">Created by DC Aligaya</p>
         </div>
     </div>
 
     <script>
-        let categories = JSON.parse(localStorage.getItem('gwapo_categories_v2')) || [];
-        let quests = JSON.parse(localStorage.getItem('gwapo_tasks_v5')) || [];
-        let dex = JSON.parse(localStorage.getItem('gwapo_dex_v3')) || [];
-        let totalXP = JSON.parse(localStorage.getItem('gwapo_xp')) || 0;
+        // MASTER STAR SVG (Copyright-free replacement)
+        const MASTER_STAR = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+        
+        // GEN 1 LEGENDARIES
+        const LEGENDARIES = [144, 145, 146, 150, 151];
 
-        function applyUpdate() {
-            if (newWorker) {
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-            }
-        }
+        // PERSISTENT BATTERY STATE
+        let charges = JSON.parse(localStorage.getItem('gwapo_m_charges')) || 0;
+        let battery = JSON.parse(localStorage.getItem('gwapo_m_battery')) || 0;
+
+        let categories = JSON.parse(localStorage.getItem('gwapo_categories_v2')) || [];
+        let quests = JSON.parse(localStorage.getItem('gwapo_tasks_v6')) || [];
+        let dex = JSON.parse(localStorage.getItem('gwapo_dex_v4')) || [];
+        let totalXP = JSON.parse(localStorage.getItem('gwapo_xp_v2')) || 0;
+
+        function applyUpdate() { if (newWorker) { newWorker.postMessage({ type: 'SKIP_WAITING' }); } }
 
         async function addQuest() {
             const input = document.getElementById('taskInput');
             const categorySelect = document.getElementById('categorySelect');
             const btn = document.getElementById('addButton');
-            if (categories.length === 0) {
-                alert("Please create a Mission Arc first!");
-                manageMissions();
-                return;
-            }
+            if (categories.length === 0) { alert("Create an Arc first!"); manageMissions(); return; }
             if (!input.value.trim()) return;
-            btn.innerText = "...";
-            btn.disabled = true;
+            btn.innerText = "..."; btn.disabled = true;
+            
             const pokeID = Math.floor(Math.random() * 649) + 1;
             try {
                 const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeID}`);
                 const data = await response.json();
-                const pokeName = data.name.charAt(0).toUpperCase() + data.name.slice(1);
                 quests.push({
                     id: Date.now(),
                     text: input.value.trim(),
                     category: categorySelect.value,
                     pokeID: pokeID,
-                    pokeName: pokeName,
-                    completed: false
+                    pokeName: data.name.charAt(0).toUpperCase() + data.name.slice(1),
+                    completed: false, isMasterBall: false
                 });
-                input.value = '';
-                save();
-            } catch (err) {
-                console.error("API Error:", err);
-                alert("Connection failed!");
-            } finally {
-                btn.innerText = "+";
-                btn.disabled = false;
-            }
+                input.value = ''; save();
+            } catch (err) { alert("Error!"); } finally { btn.innerText = "+"; btn.disabled = false; }
         }
 
-        function manageMissions() {
-            const manager = document.getElementById('missionManager');
-            manager.classList.toggle('hidden');
-            renderCategories();
-        }
-
-        function addNewCategory() {
-            const input = document.getElementById('newCatInput');
-            const newName = input.value.trim();
-            if (newName && !categories.includes(newName)) {
-                categories.push(newName);
-                input.value = '';
-                saveCategories();
-            }
-        }
-
-        function removeCategory(cat) {
-            if (confirm(`Delete the "${cat}" Arc? Tasks inside will lose their category label.`)) {
-                categories = categories.filter(c => c !== cat);
-                saveCategories();
-            }
-        }
-
-        function saveCategories() {
-            localStorage.setItem('gwapo_categories_v2', JSON.stringify(categories));
-            render();
-        }
-
-        function renderCategories() {
-            const catList = document.getElementById('catList');
-            catList.innerHTML = '';
-            categories.forEach(cat => {
-                catList.innerHTML += `
-                    <div class="bg-purple-500/20 border border-purple-500/50 px-3 py-1 rounded-full flex items-center gap-2">
-                        <span class="text-[9px] text-purple-200">${cat}</span>
-                        <button onclick="removeCategory('${cat}')" class="text-purple-400 font-bold hover:text-red-400">×</button>
-                    </div>
-                `;
-            });
-        }
-
-        function toggleQuest(id) {
+        async function setMasterBall(id) {
             const q = quests.find(i => i.id === id);
-            q.completed = !q.completed;
-            if (q.completed) {
-                totalXP += 50; 
-                if (!dex.find(p => p.pokeID === q.pokeID)) dex.push({ pokeID: q.pokeID, pokeName: q.pokeName });
+            if (!q.isMasterBall) {
+                if (charges <= 0) { alert("Not enough charges! Complete 5 regular quests to earn a Master Ball."); return; }
+                
+                // Transform into Legendary
+                const legID = LEGENDARIES[Math.floor(Math.random() * LEGENDARIES.length)];
+                try {
+                    const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${legID}`);
+                    const data = await response.json();
+                    quests.forEach(task => task.isMasterBall = false); // Single priority
+                    q.isMasterBall = true;
+                    q.pokeID = legID;
+                    q.pokeName = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+                } catch (e) { alert("API Error!"); return; }
             } else {
-                totalXP = Math.max(0, totalXP - 50);
+                q.isMasterBall = false; // Toggle off (charge not consumed until checkmark)
             }
             save();
         }
 
-        function deleteQuest(id) {
-            if(confirm("Discard mission?")) {
-                quests = quests.filter(i => i.id !== id);
-                save();
+        function toggleQuest(id) {
+            const q = quests.find(i => i.id === id);
+            const oldLvl = Math.floor(totalXP / 500);
+            q.completed = !q.completed;
+            
+            if (q.completed) {
+                // Shiny Roll (1 in 40)
+                const isShiny = Math.floor(Math.random() * 40) === 0;
+                
+                if (q.isMasterBall) {
+                    charges--;
+                    totalXP += 150;
+                } else {
+                    totalXP += 50;
+                    battery++;
+                    if (battery >= 5) { charges++; battery = 0; }
+                }
+                
+                if (!dex.find(p => p.pokeID === q.pokeID && p.isShiny === isShiny)) {
+                    dex.push({ pokeID: q.pokeID, pokeName: q.pokeName, isShiny: isShiny });
+                }
+            } else {
+                totalXP = Math.max(0, totalXP - (q.isMasterBall ? 150 : 50));
             }
+            
+            if (Math.floor(totalXP / 500) > oldLvl) triggerLvl();
+            save();
+        }
+
+        function triggerLvl() {
+            const ov = document.getElementById('lvlOverlay');
+            ov.classList.remove('hidden'); ov.classList.add('lvl-anim');
+            setTimeout(() => { ov.classList.add('hidden'); ov.classList.remove('lvl-anim'); }, 2000);
         }
 
         function save() {
-            localStorage.setItem('gwapo_tasks_v5', JSON.stringify(quests));
-            localStorage.setItem('gwapo_dex_v3', JSON.stringify(dex));
-            localStorage.setItem('gwapo_xp', JSON.stringify(totalXP));
+            localStorage.setItem('gwapo_m_charges', JSON.stringify(charges));
+            localStorage.setItem('gwapo_m_battery', JSON.stringify(battery));
+            localStorage.setItem('gwapo_tasks_v6', JSON.stringify(quests));
+            localStorage.setItem('gwapo_dex_v4', JSON.stringify(dex));
+            localStorage.setItem('gwapo_xp_v2', JSON.stringify(totalXP));
             render();
         }
 
         function render() {
             const storyContainer = document.getElementById('storyContainer');
             const collectionGrid = document.getElementById('collectionGrid');
-            const doneList = document.getElementById('doneList');
             const categorySelect = document.getElementById('categorySelect');
 
             const currentSelected = categorySelect.value;
             categorySelect.innerHTML = '';
-            if (categories.length === 0) {
-                categorySelect.innerHTML = `<option disabled selected>No Arcs Created</option>`;
-            } else {
-                categories.forEach(cat => {
-                    categorySelect.innerHTML += `<option value="${cat}" ${cat === currentSelected ? 'selected' : ''}>${cat}</option>`;
-                });
-            }
+            categories.forEach(cat => {
+                categorySelect.innerHTML += `<option value="${cat}" ${cat === currentSelected ? 'selected' : ''}>${cat}</option>`;
+            });
 
-            storyContainer.innerHTML = '';
-            collectionGrid.innerHTML = '';
-            doneList.innerHTML = '';
-
-            if (categories.length === 0) {
-                storyContainer.innerHTML = `<p class="text-[10px] text-slate-600 text-center py-10 italic">No Active Campaign. Use 'Manage Arcs' to begin.</p>`;
-            }
+            storyContainer.innerHTML = ''; collectionGrid.innerHTML = ''; document.getElementById('doneList').innerHTML = '';
 
             categories.forEach(cat => {
-                const activeInCat = quests.filter(q => q.category === cat && !q.completed);
+                const activeInCat = quests.filter(q => q.category === cat && !q.completed).sort((a,b) => b.isMasterBall - a.isMasterBall);
                 if (activeInCat.length > 0) {
                     const section = document.createElement('div');
-                    section.innerHTML = `
-                        <div class="category-header">
-                            <h3 class="pixel-font text-[8px] text-purple-400 uppercase tracking-widest">${cat}</h3>
-                        </div>
-                        <div class="space-y-3" id="list-${cat.replace(/\s/g, '')}"></div>
-                    `;
+                    section.innerHTML = `<div class="category-header"><h3 class="pixel-font text-[8px] text-purple-400 uppercase tracking-widest">${cat}</h3></div><div class="space-y-3" id="list-${cat.replace(/\s/g,'')}"></div>`;
                     storyContainer.appendChild(section);
-                    const listDiv = document.getElementById(`list-${cat.replace(/\s/g, '')}`);
+                    const listDiv = document.getElementById(`list-${cat.replace(/\s/g,'')}`);
                     activeInCat.forEach(q => {
                         const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
                         listDiv.innerHTML += `
-                            <div class="task-card p-3 rounded-xl flex items-center gap-4">
+                            <div class="task-card p-3 rounded-xl flex items-center gap-4 ${q.isMasterBall ? 'master-priority' : ''}">
                                 <img src="${sprite}" class="w-12 h-12 pixelated brightness-0 opacity-10">
-                                <p class="flex-grow text-sm font-semibold text-slate-200">${q.text}</p>
+                                <p class="flex-grow text-sm font-semibold">${q.text}</p>
                                 <div class="flex gap-2">
-                                    <button onclick="toggleQuest(${q.id})" class="p-2 text-green-400 text-lg">✓</button>
-                                    <button onclick="deleteQuest(${q.id})" class="p-2 text-red-500 text-lg">×</button>
+                                    <button onclick="setMasterBall(${q.id})" class="w-6 h-6 p-1 transition-all ${q.isMasterBall ? 'text-purple-400' : 'text-slate-700 hover:text-purple-500'}">
+                                        ${MASTER_STAR}
+                                    </button>
+                                    <button onclick="toggleQuest(${q.id})" class="p-2 text-green-400 text-lg font-bold">✓</button>
                                 </div>
-                            </div>
-                        `;
+                            </div>`;
                     });
                 }
             });
 
             quests.filter(q => q.completed).forEach(q => {
-                const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
-                doneList.innerHTML += `
-                    <div class="flex items-center gap-3 p-2 bg-slate-900/30 rounded-lg border border-slate-800 text-left">
-                        <img src="${sprite}" class="w-8 h-8 pixelated">
-                        <p class="flex-grow text-xs line-through text-slate-500">${q.text} (${catAbbreviation(q.category)})</p>
-                        <button onclick="toggleQuest(${q.id})" class="text-[10px] text-slate-600 px-2">Undo</button>
-                    </div>
-                `;
+                document.getElementById('doneList').innerHTML += `<div class="p-2 text-xs opacity-50">${q.text} (${catAbbreviation(q.category)})</div>`;
             });
 
             dex.forEach(p => {
-                const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokeID}.png`;
+                const url = p.isShiny ? 'shiny/' : '';
+                const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${url}${p.pokeID}.png`;
                 collectionGrid.innerHTML += `
-                    <div class="dex-card p-2 text-center">
+                    <div class="dex-card p-2 text-center ${p.isShiny ? 'shiny-card' : ''}">
                         <img src="${sprite}" class="w-full pixelated mx-auto">
-                        <p class="text-[7px] pixel-font text-green-400 mt-2">${p.pokeName}</p>
-                    </div>
-                `;
+                        <p class="text-[6px] pixel-font text-green-400 mt-2">${p.pokeName}${p.isShiny ? ' ✨' : ''}</p>
+                    </div>`;
             });
 
+            const currentLvl = Math.floor(totalXP / 500) + 1;
+            const progress = totalXP % 500;
+            document.getElementById('lvl-text').innerText = `LVL ${currentLvl}`;
+            document.getElementById('xp-text').innerText = `${progress} / 500 XP`;
+            document.getElementById('xp-fill').style.width = (progress / 5) + "%";
+            document.getElementById('rank-text').innerText = getRank(currentLvl);
             document.getElementById('stat-dex').innerText = dex.length;
-            document.getElementById('xp-text').innerText = totalXP + " XP";
-            const levelProgress = (totalXP % 500) / 5; 
-            document.getElementById('xp-fill').style.width = levelProgress + "%";
+            document.getElementById('stat-charges').innerText = charges;
+            
+            // Render Charge dots
+            let dots = "";
+            for(let i=0; i<5; i++) dots += `<div class="w-1.5 h-1.5 rounded-full ${i < battery ? 'bg-purple-500' : 'bg-slate-800'}"></div>`;
+            document.getElementById('charge-dots').innerHTML = dots;
+
+            // Render Badges (1 every 5 levels)
+            let badges = "";
+            const numBadges = Math.floor((currentLvl - 1) / 5);
+            const badgeIcons = ['🌑','🌊','⚡','🌈','🍀','💖','🌋','❄️'];
+            for(let i=0; i < Math.min(numBadges, 8); i++) badges += `<span class="text-xs">${badgeIcons[i]}</span>`;
+            document.getElementById('badge-container').innerHTML = badges;
+
             const completedCount = quests.filter(q => q.completed).length;
-            const percent = quests.length > 0 ? Math.round((completedCount / quests.length) * 100) : 0;
-            document.getElementById('stat-percent').innerText = percent + '%';
+            document.getElementById('stat-percent').innerText = quests.length > 0 ? Math.round((completedCount/quests.length)*100) + '%' : '0%';
             document.getElementById('pendingCount').innerText = (quests.length - completedCount) + " ONGOING";
-            renderCategories();
         }
 
-        function catAbbreviation(cat) {
-            if (!cat) return "??";
-            return cat.split(' ').map(w => w[0]).join('').toUpperCase();
-        }
-
-        function clearAll() {
-            if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); }
-        }
-
+        function getRank(l) { if(l>30) return "Champion"; if(l>20) return "Elite Four"; if(l>10) return "Gym Leader"; if(l>5) return "Ace Trainer"; return "Novice Trainer"; }
+        function manageMissions() { document.getElementById('missionManager').classList.toggle('hidden'); renderCategories(); }
+        function addNewCategory() { const i = document.getElementById('newCatInput'); if(i.value.trim()){ categories.push(i.value.trim()); i.value=''; saveCategories(); } }
+        function removeCategory(c) { if(confirm("Delete?")){ categories = categories.filter(x=>x!==c); saveCategories(); } }
+        function saveCategories() { localStorage.setItem('gwapo_categories_v2', JSON.stringify(categories)); render(); }
+        function catAbbreviation(c) { return c ? c.split(' ').map(w => w[0]).join('').toUpperCase() : "??"; }
+        function clearAll() { if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); } }
         render();
     </script>
 </body>

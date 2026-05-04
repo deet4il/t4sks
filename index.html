@@ -175,7 +175,7 @@
             if (categories.length === 0) { alert("Create an Arc first!"); manageMissions(); return; }
             if (!input.value.trim()) return;
             btn.innerText = "..."; btn.disabled = true;
-            const pokeID = Math.floor(Math.random() * 649) + 1;
+            const pokeID = Math.floor(Math.random() * 151) + 1;
             try {
                 const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeID}`);
                 const data = await response.json();

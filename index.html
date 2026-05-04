@@ -48,19 +48,46 @@
         .dex-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; transition: all 0.3s; cursor: pointer; }
         .category-header { border-left: 4px solid #a855f7; padding-left: 12px; transition: all 0.2s; }
         .category-header:hover { background: rgba(168, 85, 247, 0.05); cursor: pointer; }
-        .shiny-card { background: radial-gradient(circle, rgba(253,224,71,0.15) 0%, rgba(30,41,59,0.4) 100%) !important; border: 1px solid #fde047 !important; }
+        .shiny-card { background: radial-gradient(circle, rgba(253,224,71,0.15) 0%, rgba(30, 41, 59, 0.4) 100%) !important; border: 1px solid #fde047 !important; }
         @keyframes levelUp { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
         .lvl-anim { animation: levelUp 2s ease-out forwards; }
         .chevron { transition: transform 0.3s ease; }
         .chevron.collapsed { transform: rotate(-90deg); }
         .task-text { cursor: pointer; transition: max-height 0.3s ease; }
         .task-text.expanded { white-space: normal; word-break: break-word; }
-        
         .action-pillar { min-width: 36px; border-left: 1px solid rgba(255,255,255,0.05); }
         .daily-arc-header { border-left: 4px solid #60a5fa; }
+        
+        /* BATTLE STYLES */
+        .hp-bar-container { background: #450a0a; border: 2px solid #000; height: 10px; border-radius: 5px; overflow: hidden; }
+        .hp-fill { background: linear-gradient(90deg, #ef4444, #f87171); width: 100%; transition: width 0.3s ease-out; height: 100%; }
+        .be-meter { background: linear-gradient(90deg, #f59e0b, #fbbf24); height: 100%; transition: width 0.3s ease; }
     </style>
 </head>
-<body class="pb-24 text-left">
+<body class="pb-24 text-left overflow-x-hidden">
+    <div id="battleScreen" class="hidden fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-6 text-center">
+        <h2 id="gymTitle" class="pixel-font text-blue-400 text-[10px] mb-2 uppercase">Challenger: Brock</h2>
+        <div class="w-full max-w-xs mb-8">
+            <p class="pixel-font text-[7px] mb-1 text-slate-500 uppercase">Opponent HP</p>
+            <div class="hp-bar-container mb-2"><div id="bossHP" class="hp-fill"></div></div>
+            <img id="bossSprite" src="" class="w-24 h-24 mx-auto pixelated mb-4 animate-bounce">
+        </div>
+        
+        <div id="battleControls" class="w-full max-w-xs space-y-4">
+            <p id="battleMessage" class="text-xs text-slate-300 italic mb-4">Select your team to begin the duel...</p>
+            <div id="teamSelect" class="grid grid-cols-3 gap-2 mb-4"></div>
+            <div id="moveGrid" class="hidden grid grid-cols-2 gap-2">
+                <button onclick="battleAction('tackle')" class="bg-slate-800 p-2 text-[8px] pixel-font rounded uppercase hover:bg-slate-700">Tackle<br><span class="text-[6px] text-slate-500">10 BE</span></button>
+                <button onclick="battleAction('special')" class="bg-blue-900/50 p-2 text-[8px] pixel-font rounded uppercase border border-blue-500/50 hover:bg-blue-800">Elemental<br><span class="text-[6px] text-blue-400">30 BE</span></button>
+                <button onclick="battleAction('zmove')" class="col-span-2 bg-purple-900/50 p-2 text-[8px] pixel-font rounded border border-purple-500 hover:bg-purple-800 uppercase">Z-Move Burst<br><span class="text-[6px] text-purple-400">100 BE</span></button>
+            </div>
+            <div class="mt-4">
+                <p class="pixel-font text-[7px] mb-1 text-yellow-500 uppercase">Stored Battle Energy</p>
+                <div class="hp-bar-container h-4"><div id="beMeter" class="be-meter" style="width: 0%"></div></div>
+            </div>
+        </div>
+    </div>
+
     <div id="updateToast" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-sm bg-purple-600 border-2 border-white p-4 rounded-xl shadow-2xl flex justify-between items-center">
         <p class="pixel-font text-[8px] text-white">NEW PATCH AVAILABLE!</p>
         <button onclick="applyUpdate()" class="bg-white text-purple-600 px-3 py-1 rounded-lg font-bold text-[10px] uppercase">Update</button>
@@ -186,27 +213,45 @@
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase mb-4">Wipe Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v12.11</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v13.0</p>
             <p class="text-[7px] pixel-font text-slate-700 uppercase mt-2">Created by: DC Aligaya</p>
         </div>
     </div>
 
     <script>
+        // --- UI & STATE ---
         function toggleManual() { const m = document.getElementById('appManual'); if(m) m.classList.toggle('hidden'); }
         function toggleTaskExpand(id) { expandedTaskId = (expandedTaskId === id) ? null : id; render(); }
         let expandedDexId = null;
         function toggleDexExpand(id) { expandedDexId = (expandedDexId === id) ? null : id; render(); }
 
-        // --- SECTION TOGGLES ---
-        let dexCollapsed = false;
-        let doneCollapsed = false;
-        function toggleDexSection() { dexCollapsed = !dexCollapsed; render(); }
-        function toggleDoneSection() { doneCollapsed = !doneCollapsed; render(); }
+        let dexCollapsed = JSON.parse(localStorage.getItem('gwapo_dex_collapsed')) || false;
+        let doneCollapsed = JSON.parse(localStorage.getItem('gwapo_done_collapsed')) || false;
+        function toggleDexSection() { dexCollapsed = !dexCollapsed; localStorage.setItem('gwapo_dex_collapsed', dexCollapsed); render(); }
+        function toggleDoneSection() { doneCollapsed = !doneCollapsed; localStorage.setItem('gwapo_done_collapsed', doneCollapsed); render(); }
 
         const MASTER_STAR = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
         const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
         const TRASH_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
-        const LEGENDARIES = [144, 145, 146, 150, 151];
+
+        // --- BATTLE STATE ---
+        let battleEnergy = JSON.parse(localStorage.getItem('gwapo_be_v1')) || 0;
+        let lastBattleLevel = JSON.parse(localStorage.getItem('gwapo_last_battle')) || 0;
+        let currentBadges = JSON.parse(localStorage.getItem('gwapo_badges_v1')) || [];
+        let battleInProgress = false;
+        let bossHP = 100;
+        let playerTeam = [];
+
+        const GYMS = [
+            { lvl: 3, leader: "Brock", badge: "Boulder", sprite: 74, type: "rock" },
+            { lvl: 6, leader: "Misty", badge: "Cascade", sprite: 120, type: "water" },
+            { lvl: 9, leader: "Lt. Surge", badge: "Thunder", sprite: 26, type: "electric" },
+            { lvl: 12, leader: "Erika", badge: "Rainbow", sprite: 45, type: "grass" },
+            { lvl: 15, leader: "Koga", badge: "Soul", sprite: 109, type: "poison" },
+            { lvl: 18, leader: "Sabrina", badge: "Marsh", sprite: 64, type: "psychic" },
+            { lvl: 21, leader: "Blaine", badge: "Volcano", sprite: 58, type: "fire" },
+            { lvl: 24, leader: "Giovanni", badge: "Earth", sprite: 112, type: "ground" }
+        ];
 
         let rawCategories = JSON.parse(localStorage.getItem('gwapo_categories_v2')) || [];
         let categories = rawCategories.map(c => typeof c === 'string' ? {name: c, isDaily: false} : c);
@@ -237,37 +282,40 @@
         async function addQuest() {
             const input = document.getElementById('taskInput');
             const catSelect = document.getElementById('categorySelect');
-            const btn = document.getElementById('addButton');
             if (categories.length === 0) { alert("Create an Arc first!"); manageMissions(); return; }
             if (!input.value.trim()) return;
+            const btn = document.getElementById('addButton');
             btn.innerText = "..."; btn.disabled = true;
+            
             const pokeID = Math.floor(Math.random() * 151) + 1;
             try {
-                const pokeRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeID}`);
-                const pokeData = await pokeRes.json();
-                const specRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokeID}`);
-                const specData = await specRes.json();
-                const flavor = specData.flavor_text_entries.find(e => e.language.name === 'en');
+                const pRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeID}`);
+                const pData = await pRes.json();
+                const sRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokeID}`);
+                const sData = await sRes.json();
+                const flavor = sData.flavor_text_entries.find(e => e.language.name === 'en');
+                
                 quests.push({
                     id: Date.now(),
                     text: input.value.trim(),
                     category: catSelect.value,
                     lastCompletedDate: null,
                     pokeID: pokeID,
-                    pokeName: pokeData.name.charAt(0).toUpperCase() + pokeData.name.slice(1),
+                    pokeName: pData.name.charAt(0).toUpperCase() + pData.name.slice(1),
+                    pokeType: pData.types[0].type.name,
                     description: flavor ? flavor.flavor_text.replace(/[\f\n\r]/g, ' ') : null,
                     completed: false, isMasterBall: false
                 });
                 input.value = ''; save();
-            } catch (err) { alert("Error! Check connection to PokeAPI."); } 
-            finally { btn.innerText = "+"; btn.disabled = false; }
+            } catch (err) { alert("API Error."); } finally { btn.innerText = "+"; btn.disabled = false; }
         }
 
         async function setMasterBall(id) {
             const q = quests.find(i => i.id === id);
             if (!q.isMasterBall) {
-                if (charges <= 0) { alert("Not enough charges!"); return; }
-                const legID = LEGENDARIES[Math.floor(Math.random() * LEGENDARIES.length)];
+                const cost = currentBadges.includes("Thunder") ? 4 : 5; // Thunder Badge
+                if (charges <= 0) { alert(`Finish ${cost} more tasks!`); return; }
+                const legID = [144, 145, 146, 150, 151][Math.floor(Math.random() * 5)];
                 try {
                     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${legID}`);
                     const data = await res.json();
@@ -277,6 +325,7 @@
                     quests.forEach(t => t.isMasterBall = false);
                     q.isMasterBall = true; q.pokeID = legID;
                     q.pokeName = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+                    q.pokeType = data.types[0].type.name;
                     q.description = flavor ? flavor.flavor_text.replace(/[\f\n\r]/g, ' ') : null;
                 } catch (e) { alert("API Error!"); return; }
             } else { q.isMasterBall = false; }
@@ -285,13 +334,29 @@
 
         async function toggleQuest(id) {
             const q = quests.find(i => i.id === id);
+            const arc = categories.find(c => c.name === q.category);
             const today = new Date().toISOString().split('T')[0];
-            const oldLvl = Math.floor(totalXP / 500);
+            const oldLvl = Math.floor(totalXP / (currentBadges.includes("Cascade") ? 475 : 500)); // Cascade Badge
+            
             q.completed = !q.completed;
             if (q.completed) {
                 q.lastCompletedDate = today;
-                // REVERTED SHINY RATE TO 1:10
-                const isShiny = Math.floor(Math.random() * 10) === 0;
+                const isShiny = Math.floor(Math.random() * (currentBadges.includes("Soul") && q.isMasterBall ? 5 : 10)) === 0; // Soul Badge
+                
+                // BE GAINS
+                let beGain = q.isMasterBall ? 50 : (arc && arc.isDaily ? 5 : 15);
+                if (currentBadges.includes("Boulder") && arc && arc.isDaily) beGain = Math.round(beGain * 1.15); // Boulder Badge
+                battleEnergy = Math.min(100, battleEnergy + beGain);
+
+                // XP GAINS
+                let xpGain = q.isMasterBall ? 150 : 50;
+                if (currentBadges.includes("Rainbow")) xpGain = Math.round(xpGain * 1.1); // Rainbow Badge
+                totalXP += xpGain;
+
+                battery++;
+                const limit = currentBadges.includes("Thunder") ? 4 : 5;
+                if (battery >= limit) { charges++; battery = 0; }
+
                 if (!q.description) {
                     try {
                         const sRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${q.pokeID}`);
@@ -300,18 +365,101 @@
                         q.description = f ? f.flavor_text.replace(/[\f\n\r]/g, ' ') : "A mysterious Pokémon.";
                     } catch (e) { q.description = "A mysterious Pokémon from the Kanto region."; }
                 }
-                if (q.isMasterBall) { charges--; totalXP += 150; } 
-                else { totalXP += 50; battery++; if (battery >= 5) { charges++; battery = 0; } }
+                
                 if (!dex.find(p => p.taskID === q.id)) {
-                    dex.push({ taskID: q.id, pokeID: q.pokeID, pokeName: q.pokeName, isShiny: isShiny, description: q.description });
+                    dex.push({ taskID: q.id, pokeID: q.pokeID, pokeName: q.pokeName, pokeType: q.pokeType, isShiny: isShiny, description: q.description });
                 }
             } else { 
                 dex = dex.filter(p => p.taskID !== q.id);
-                if (q.isMasterBall) { charges++; totalXP = Math.max(0, totalXP - 150); } 
-                else { totalXP = Math.max(0, totalXP - 50); if (battery > 0) battery--; else if (charges > 0) { charges--; battery = 4; } }
+                totalXP = Math.max(0, totalXP - (q.isMasterBall ? 150 : 50));
             }
-            if (Math.floor(totalXP / 500) > oldLvl) triggerLvl();
             save();
+            checkGymEncounter();
+        }
+
+        // --- BATTLE LOGIC ---
+        function checkGymEncounter() {
+            const currentLvl = Math.floor(totalXP / (currentBadges.includes("Cascade") ? 475 : 500)) + 1;
+            const gym = GYMS.find(g => currentLvl >= g.lvl && !currentBadges.includes(g.badge));
+            if (gym && !battleInProgress) {
+                triggerGymBattle(gym);
+            }
+        }
+
+        function triggerGymBattle(gym) {
+            battleInProgress = true;
+            bossHP = 100;
+            playerTeam = [];
+            const screen = document.getElementById('battleScreen');
+            const title = document.getElementById('gymTitle');
+            const msg = document.getElementById('battleMessage');
+            const bossSprite = document.getElementById('bossSprite');
+            const teamSelect = document.getElementById('teamSelect');
+            
+            screen.classList.remove('hidden');
+            title.innerText = `Challenger: ${gym.leader}`;
+            msg.innerText = `Select your team of 3 to start the ${gym.badge} duel!`;
+            bossSprite.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${gym.sprite}.png`;
+            document.getElementById('bossHP').style.width = '100%';
+            
+            teamSelect.innerHTML = '';
+            // Get unique species from Dex
+            const species = [];
+            dex.forEach(p => { if(!species.find(s => s.pokeID === p.pokeID)) species.push(p); });
+            
+            species.forEach(p => {
+                teamSelect.innerHTML += `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokeID}.png" onclick="selectTeammate(${JSON.stringify(p).replace(/"/g, '&quot;')})" class="w-12 h-12 pixelated border border-slate-700 p-1 hover:border-blue-500 cursor-pointer">`;
+            });
+        }
+
+        function selectTeammate(p) {
+            if (playerTeam.length >= 3) return;
+            if (playerTeam.find(t => t.taskID === p.taskID)) return;
+            playerTeam.push(p);
+            document.getElementById('battleMessage').innerText = `Team: ${playerTeam.map(t => t.pokeName).join(', ')}`;
+            if (playerTeam.length === 3) {
+                document.getElementById('teamSelect').classList.add('hidden');
+                document.getElementById('moveGrid').classList.remove('hidden');
+            }
+        }
+
+        function battleAction(moveType) {
+            const gym = GYMS.find(g => !currentBadges.includes(g.badge));
+            let damage = 0;
+            let cost = 0;
+
+            if (moveType === 'tackle') { damage = 10; cost = 10; }
+            else if (moveType === 'special') { damage = 25; cost = 30; }
+            else if (moveType === 'zmove') { damage = 60; cost = 100; }
+
+            if (battleEnergy < cost) { alert("Not enough energy!"); return; }
+            
+            // Calculate effectiveness
+            let effectiveness = 1;
+            playerTeam.forEach(p => {
+                if (p.isShiny) effectiveness += 0.2; // Shinies ignore standard resistance
+                // Basic Gen 1 Logic
+                if (p.pokeType === 'water' && gym.type === 'rock') effectiveness += 0.5;
+                if (p.pokeType === 'fire' && gym.type === 'grass') effectiveness += 0.5;
+                if (p.pokeType === 'electric' && gym.type === 'water') effectiveness += 0.5;
+            });
+
+            battleEnergy -= cost;
+            bossHP -= (damage * effectiveness);
+            
+            document.getElementById('bossHP').style.width = Math.max(0, bossHP) + '%';
+            document.getElementById('beMeter').style.width = battleEnergy + '%';
+
+            if (bossHP <= 0) {
+                alert(`Victory! You earned the ${gym.badge} Badge!`);
+                currentBadges.push(gym.badge);
+                localStorage.setItem('gwapo_badges_v1', JSON.stringify(currentBadges));
+                battleInProgress = false;
+                document.getElementById('battleScreen').classList.add('hidden');
+                document.getElementById('teamSelect').classList.remove('hidden');
+                document.getElementById('moveGrid').classList.add('hidden');
+                save();
+            }
         }
 
         function deleteQuest(id) {
@@ -319,12 +467,6 @@
             dex = dex.filter(p => p.taskID !== id);
             quests = quests.filter(q => q.id !== id);
             save();
-        }
-
-        function triggerLvl() {
-            const ov = document.getElementById('lvlOverlay');
-            ov.classList.remove('hidden'); ov.classList.add('lvl-anim');
-            setTimeout(() => { ov.classList.add('hidden'); ov.classList.remove('lvl-anim'); }, 2000);
         }
 
         function toggleArc(cat) {
@@ -347,6 +489,7 @@
             localStorage.setItem('gwapo_tasks_v6', JSON.stringify(quests));
             localStorage.setItem('gwapo_dex_v4', JSON.stringify(dex));
             localStorage.setItem('gwapo_xp_v2', JSON.stringify(totalXP));
+            localStorage.setItem('gwapo_be_v1', JSON.stringify(battleEnergy));
             render();
         }
 
@@ -379,7 +522,6 @@
 
             storyContainer.innerHTML = ''; collectionGrid.innerHTML = ''; doneList.innerHTML = '';
 
-            // --- SECTIONS VISIBILITY ---
             const dexChevron = document.getElementById('dexChevron');
             if (dexChevron) dexChevron.className = `chevron w-3 h-3 text-green-500 ${dexCollapsed ? 'collapsed' : ''}`;
             const doneChevron = document.getElementById('doneChevron');
@@ -387,10 +529,10 @@
 
             categories.forEach(cat => {
                 const activeInCat = quests.filter(q => q.category === cat.name && !q.completed).sort((a,b) => b.isMasterBall - a.isMasterBall);
-                const isCollapsed = collapsedArcs.includes(cat.name);
                 if (activeInCat.length > 0) {
                     const section = document.createElement('div');
                     section.className = "mb-6";
+                    const isCollapsed = collapsedArcs.includes(cat.name);
                     const h = document.createElement('div');
                     h.className = `category-header flex items-center justify-between p-2 mb-3 rounded-lg ${cat.isDaily ? 'daily-arc-header bg-blue-900/10' : ''}`;
                     h.onclick = () => toggleArc(cat.name);
@@ -421,27 +563,24 @@
                 }
             });
 
-            // --- POXEDEX DROPDOWN LOGIC ---
             if (!dexCollapsed) {
-                const uniqueDex = [];
-                dex.forEach(p => { if (!uniqueDex.find(u => u.pokeID === p.pokeID && u.isShiny === p.isShiny)) uniqueDex.push(p); });
-                uniqueDex.forEach(p => {
+                const species = [];
+                dex.forEach(p => { if (!species.find(u => u.pokeID === p.pokeID && u.isShiny === p.isShiny)) species.push(p); });
+                species.forEach(p => {
                     const s = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.isShiny ? 'shiny/' : ''}${p.pokeID}.png`;
-                    const isExp = expandedDexId === (p.pokeID + (p.isShiny ? '_s' : ''));
                     collectionGrid.innerHTML += `
                         <div class="dex-card p-3 flex flex-col gap-2 ${p.isShiny ? 'shiny-card' : ''}" onclick="toggleDexExpand('${p.pokeID}${p.isShiny ? '_s' : ''}')">
                             <div class="flex items-center gap-4">
                                 <img src="${s}" class="w-12 h-12 pixelated">
                                 <p class="text-[8px] pixel-font text-green-400 uppercase">${p.pokeName}${p.isShiny ? ' ✨' : ''}</p>
                             </div>
-                            <div class="${isExp ? 'block' : 'hidden'} mt-2 p-2 bg-black/40 rounded-lg border-t border-green-500/20">
+                            <div class="${expandedDexId === (p.pokeID + (p.isShiny ? '_s' : '')) ? 'block' : 'hidden'} mt-2 p-2 bg-black/40 rounded-lg border-t border-green-500/20">
                                 <p class="text-[10px] italic text-slate-300 leading-relaxed">${p.description || "A mysterious Pokémon from the Kanto region."}</p>
                             </div>
                         </div>`;
                 });
             }
 
-            // --- COMPLETED DROPDOWN LOGIC ---
             if (!doneCollapsed) {
                 quests.filter(q => q.completed).forEach(q => {
                     doneList.innerHTML += `<div class="flex items-center justify-between p-2 bg-slate-900/30 rounded-lg border border-slate-800 mb-2">
@@ -454,58 +593,31 @@
                 });
             }
 
-            const lvl = Math.floor(totalXP / 500) + 1;
-            const prog = totalXP % 500;
-            document.getElementById('lvl-text').innerText = `LVL ${lvl}`;
-            document.getElementById('xp-text').innerText = `${prog} / 500 XP`;
-            document.getElementById('xp-fill').style.width = (prog / 5) + "%";
-            document.getElementById('rank-text').innerText = getRank(lvl);
+            const currentLvl = Math.floor(totalXP / (currentBadges.includes("Cascade") ? 475 : 500)) + 1;
+            const progress = totalXP % (currentBadges.includes("Cascade") ? 475 : 500);
+            document.getElementById('lvl-text').innerText = `LVL ${currentLvl}`;
+            document.getElementById('xp-text').innerText = `${progress} / ${currentBadges.includes("Cascade") ? 475 : 500} XP`;
+            document.getElementById('xp-fill').style.width = (progress / (currentBadges.includes("Cascade") ? 4.75 : 5)) + "%";
+            document.getElementById('rank-text').innerText = getRank(currentLvl);
             document.getElementById('stat-dex').innerText = dex.length;
             document.getElementById('stat-charges').innerText = charges;
+            document.getElementById('beMeter').style.width = battleEnergy + '%';
             let dots = ""; for(let i=0; i<5; i++) dots += `<div class="w-1.5 h-1.5 rounded-full ${i < battery ? 'bg-purple-500' : 'bg-slate-800'}"></div>`;
             document.getElementById('charge-dots').innerHTML = dots;
-            let bgs = ""; for(let i=0; i < Math.min(Math.floor((lvl - 1) / 5), 8); i++) bgs += `<span class="text-xs">${['🌑','🌊','⚡','🌈','🍀','💖','🌋','❄️'][i]}</span>`;
+            let bgs = ""; 
+            GYMS.forEach(g => { if(currentBadges.includes(g.badge)) bgs += `<span class="text-xs" title="${g.badge} Badge Buff Active">🏆</span>`; });
             document.getElementById('badge-container').innerHTML = bgs;
             const cEl = document.getElementById('stat-percent');
-            if (cEl) {
-                const comp = quests.filter(q => q.completed).length;
-                cEl.innerText = quests.length > 0 ? Math.round((comp / quests.length) * 100) + '%' : '0%';
-            }
-            document.getElementById('pendingCount').innerText = (quests.length - quests.filter(q => q.completed).length) + " ONGOING";
+            if (cEl) cEl.innerText = quests.length > 0 ? Math.round((quests.filter(q => q.completed).length / quests.length) * 100) + '%' : '0%';
         }
 
         function getRank(l) { if(l>30) return "Champion"; if(l>20) return "Elite Four"; if(l>10) return "Gym Leader"; if(l>5) return "Ace Trainer"; return "Novice Trainer"; }
         function manageMissions() { document.getElementById('missionManager').classList.toggle('hidden'); render(); }
-        
-        function addNewCategory() { 
-            const i = document.getElementById('newCatInput'); 
-            const d = document.getElementById('newCatDaily');
-            if(i.value.trim()){ 
-                categories.push({name: i.value.trim(), isDaily: d.checked}); 
-                i.value=''; d.checked=false; saveCategories(); 
-            } 
-        }
-
-        function editCategory(oldName) {
-            const newName = prompt("Rename Arc:", oldName);
-            if (newName && newName.trim() && newName !== oldName) {
-                const cat = categories.find(c => c.name === oldName);
-                cat.name = newName.trim();
-                quests.forEach(q => { if(q.category === oldName) q.category = newName.trim(); });
-                saveCategories();
-                save();
-            }
-        }
-
-        function removeCategory(name) {
-            if(confirm(`Permanently delete "${name}"? Existing tasks will remain but their Arc will be missing.`)){
-                categories = categories.filter(x => x.name !== name);
-                saveCategories();
-            }
-        }
-
+        function addNewCategory() { const i = document.getElementById('newCatInput'); const d = document.getElementById('newCatDaily'); if(i.value.trim()){ categories.push({name: i.value.trim(), isDaily: d.checked}); i.value=''; d.checked=false; saveCategories(); } }
+        function editCategory(old) { const n = prompt("Rename Arc:", old); if (n && n.trim() && n !== old) { categories.find(c => c.name === old).name = n.trim(); quests.forEach(q => { if(q.category === old) q.category = n.trim(); }); saveCategories(); save(); } }
+        function removeCategory(n) { if(confirm(`Delete "${n}"?`)){ categories = categories.filter(x => x.name !== n); saveCategories(); } }
         function saveCategories() { localStorage.setItem('gwapo_categories_v2', JSON.stringify(categories)); render(); }
-        function clearAll() { if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); } }
+        function clearAll() { if(confirm("Wipe data?")) { localStorage.clear(); location.reload(); } }
         
         checkDailyReset();
         render();

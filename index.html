@@ -146,18 +146,18 @@
 
         <div id="missionManager" class="hidden bg-purple-900/20 p-4 rounded-xl border border-purple-500/30 mb-8">
             <h3 class="pixel-font text-[8px] mb-4 text-purple-300 uppercase">Architect</h3>
-            <div class="flex flex-col gap-4 mb-4">
+            <div class="flex flex-col gap-4 mb-6">
                 <div class="flex gap-2">
                     <input id="newCatInput" type="text" placeholder="New Arc..." class="flex-grow bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-xs outline-none">
-                    <button onclick="addNewCategory()" class="bg-purple-500 text-white px-4 rounded-lg text-xs font-bold">ADD</button>
+                    <button onclick="addNewCategory()" class="bg-purple-500 text-white px-4 rounded-lg text-xs font-bold uppercase">Add</button>
                 </div>
                 <label class="flex items-center gap-2 cursor-pointer ml-1">
                     <input id="newCatDaily" type="checkbox" class="w-3 h-3 accent-blue-500">
                     <span class="pixel-font text-[7px] text-blue-300 uppercase">Set as Daily Arc</span>
                 </label>
             </div>
-            <div id="catList" class="flex flex-wrap gap-2"></div>
-            <button onclick="manageMissions()" class="mt-4 text-[7px] pixel-font text-slate-400 block mx-auto uppercase">Close</button>
+            <div id="catList" class="space-y-2"></div>
+            <button onclick="manageMissions()" class="mt-6 text-[7px] pixel-font text-slate-400 block mx-auto uppercase">Close Architect</button>
         </div>
 
         <div class="mb-10 text-left">
@@ -169,18 +169,24 @@
         </div>
 
         <div class="mt-12 p-4 bg-black/30 rounded-2xl border border-slate-800">
-            <h2 class="pixel-font text-[9px] mb-6 text-green-500 tracking-widest text-center uppercase">Pokedex</h2>
-            <div id="collectionGrid" class="grid grid-cols-1 gap-3"></div>
+            <button onclick="toggleDexSection()" class="w-full flex items-center justify-between group">
+                <h2 class="pixel-font text-[9px] text-green-500 tracking-widest uppercase">Pokedex</h2>
+                <svg id="dexChevron" class="chevron w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div id="collectionGrid" class="grid grid-cols-1 gap-3 mt-6"></div>
         </div>
 
         <div class="mt-8 text-center">
-            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 tracking-widest uppercase">Completed quest(s)</h2>
-            <div id="doneList" class="space-y-2 opacity-80"></div>
+            <button onclick="toggleDoneSection()" class="w-full flex items-center justify-between group px-4">
+                <h2 class="pixel-font text-[9px] text-slate-500 tracking-widest uppercase">Completed quest(s)</h2>
+                <svg id="doneChevron" class="chevron w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div id="doneList" class="space-y-2 opacity-80 mt-4"></div>
         </div>
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase mb-4">Wipe Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v12.9.2</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v12.11</p>
             <p class="text-[7px] pixel-font text-slate-700 uppercase mt-2">Created by: DC Aligaya</p>
         </div>
     </div>
@@ -190,6 +196,12 @@
         function toggleTaskExpand(id) { expandedTaskId = (expandedTaskId === id) ? null : id; render(); }
         let expandedDexId = null;
         function toggleDexExpand(id) { expandedDexId = (expandedDexId === id) ? null : id; render(); }
+
+        // --- SECTION TOGGLES ---
+        let dexCollapsed = false;
+        let doneCollapsed = false;
+        function toggleDexSection() { dexCollapsed = !dexCollapsed; render(); }
+        function toggleDoneSection() { doneCollapsed = !doneCollapsed; render(); }
 
         const MASTER_STAR = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
         const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
@@ -271,41 +283,27 @@
             save();
         }
 
-        // --- HOT-FETCH COMPLETION LOGIC ---
         async function toggleQuest(id) {
             const q = quests.find(i => i.id === id);
             const today = new Date().toISOString().split('T')[0];
             const oldLvl = Math.floor(totalXP / 500);
-            
             q.completed = !q.completed;
-            
             if (q.completed) {
                 q.lastCompletedDate = today;
-                const isShiny = Math.floor(Math.random() * 10) === 0; // Shiny 1:10
-                
-                // If the description is missing (Legacy Task), Hot-Fetch it now!
+                // REVERTED SHINY RATE TO 1:10
+                const isShiny = Math.floor(Math.random() * 10) === 0;
                 if (!q.description) {
                     try {
                         const sRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${q.pokeID}`);
                         const sData = await sRes.json();
-                        const flavor = sData.flavor_text_entries.find(e => e.language.name === 'en');
-                        q.description = flavor ? flavor.flavor_text.replace(/[\f\n\r]/g, ' ') : "A mysterious Pokémon.";
-                    } catch (e) {
-                        q.description = "A mysterious Pokémon from the Kanto region.";
-                    }
+                        const f = sData.flavor_text_entries.find(e => e.language.name === 'en');
+                        q.description = f ? f.flavor_text.replace(/[\f\n\r]/g, ' ') : "A mysterious Pokémon.";
+                    } catch (e) { q.description = "A mysterious Pokémon from the Kanto region."; }
                 }
-
                 if (q.isMasterBall) { charges--; totalXP += 150; } 
                 else { totalXP += 50; battery++; if (battery >= 5) { charges++; battery = 0; } }
-                
                 if (!dex.find(p => p.taskID === q.id)) {
-                    dex.push({ 
-                        taskID: q.id, 
-                        pokeID: q.pokeID, 
-                        pokeName: q.pokeName, 
-                        isShiny: isShiny, 
-                        description: q.description
-                    });
+                    dex.push({ taskID: q.id, pokeID: q.pokeID, pokeName: q.pokeName, isShiny: isShiny, description: q.description });
                 }
             } else { 
                 dex = dex.filter(p => p.taskID !== q.id);
@@ -336,10 +334,10 @@
             render();
         }
 
-        function startEdit(id) { editingId = id; render(); const input = document.getElementById(`edit-${id}`); if (input) { input.focus(); input.select(); } }
+        function startEdit(id) { editingId = id; render(); const i = document.getElementById(`edit-${id}`); if (i) { i.focus(); i.select(); } }
         function saveEdit(id) {
-            const input = document.getElementById(`edit-${id}`);
-            if (input && input.value.trim()) { quests.find(i => i.id === id).text = input.value.trim(); }
+            const i = document.getElementById(`edit-${id}`);
+            if (i && i.value.trim()) { quests.find(q => q.id === id).text = i.value.trim(); }
             editingId = null; save();
         }
 
@@ -356,13 +354,36 @@
             const storyContainer = document.getElementById('storyContainer');
             const collectionGrid = document.getElementById('collectionGrid');
             const doneList = document.getElementById('doneList');
-            if (!storyContainer || !collectionGrid || !doneList) return;
+            const catList = document.getElementById('catList');
+            if (!storyContainer || !collectionGrid || !doneList || !catList) return;
 
             const catSelect = document.getElementById('categorySelect');
-            const currentSelected = catSelect.value;
+            const curSelected = catSelect.value;
             catSelect.innerHTML = '';
-            categories.forEach(cat => { catSelect.innerHTML += `<option value="${cat.name}" ${cat.name === currentSelected ? 'selected' : ''}>${cat.name}</option>`; });
+            catList.innerHTML = '';
+
+            categories.forEach(cat => {
+                catSelect.innerHTML += `<option value="${cat.name}" ${cat.name === curSelected ? 'selected' : ''}>${cat.name}</option>`;
+                catList.innerHTML += `
+                    <div class="flex items-center justify-between bg-black/30 p-3 rounded-lg border border-purple-500/20">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold ${cat.isDaily ? 'text-blue-400' : 'text-slate-200'}">${cat.name}</span>
+                            <span class="text-[6px] pixel-font text-slate-500 uppercase">${cat.isDaily ? 'Daily Routine' : 'Standard Arc'}</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="editCategory('${cat.name}')" class="w-4 h-4 text-slate-500 hover:text-white transition-colors">${EDIT_ICON}</button>
+                            <button onclick="removeCategory('${cat.name}')" class="w-4 h-4 text-slate-700 hover:text-red-500 transition-colors">${TRASH_ICON}</button>
+                        </div>
+                    </div>`;
+            });
+
             storyContainer.innerHTML = ''; collectionGrid.innerHTML = ''; doneList.innerHTML = '';
+
+            // --- SECTIONS VISIBILITY ---
+            const dexChevron = document.getElementById('dexChevron');
+            if (dexChevron) dexChevron.className = `chevron w-3 h-3 text-green-500 ${dexCollapsed ? 'collapsed' : ''}`;
+            const doneChevron = document.getElementById('doneChevron');
+            if (doneChevron) doneChevron.className = `chevron w-3 h-3 text-slate-500 ${doneCollapsed ? 'collapsed' : ''}`;
 
             categories.forEach(cat => {
                 const activeInCat = quests.filter(q => q.category === cat.name && !q.completed).sort((a,b) => b.isMasterBall - a.isMasterBall);
@@ -370,11 +391,11 @@
                 if (activeInCat.length > 0) {
                     const section = document.createElement('div');
                     section.className = "mb-6";
-                    const header = document.createElement('div');
-                    header.className = `category-header flex items-center justify-between p-2 mb-3 rounded-lg ${cat.isDaily ? 'daily-arc-header bg-blue-900/10' : ''}`;
-                    header.onclick = () => toggleArc(cat.name);
-                    header.innerHTML = `<div class="flex items-center gap-2"><h3 class="pixel-font text-[8px] ${cat.isDaily ? 'text-blue-400' : 'text-purple-400'} uppercase tracking-widest">${cat.name}</h3>${cat.isDaily ? '<span class="text-[6px] text-blue-500 font-bold uppercase">[Daily Arc]</span>' : ''}</div><svg class="chevron w-3 h-3 text-purple-500 ${isCollapsed ? 'collapsed' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>`;
-                    section.appendChild(header);
+                    const h = document.createElement('div');
+                    h.className = `category-header flex items-center justify-between p-2 mb-3 rounded-lg ${cat.isDaily ? 'daily-arc-header bg-blue-900/10' : ''}`;
+                    h.onclick = () => toggleArc(cat.name);
+                    h.innerHTML = `<div class="flex items-center gap-2"><h3 class="pixel-font text-[8px] ${cat.isDaily ? 'text-blue-400' : 'text-purple-400'} uppercase tracking-widest">${cat.name}</h3>${cat.isDaily ? '<span class="text-[6px] text-blue-500 font-bold uppercase">[Daily]</span>' : ''}</div><svg class="chevron w-3 h-3 text-purple-500 ${isCollapsed ? 'collapsed' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>`;
+                    section.appendChild(h);
 
                     const listDiv = document.createElement('div');
                     listDiv.className = `space-y-3 ${isCollapsed ? 'hidden' : ''}`;
@@ -382,13 +403,12 @@
                     storyContainer.appendChild(section);
 
                     activeInCat.forEach(q => {
-                        const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
-                        const isExpanded = expandedTaskId === q.id;
+                        const s = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
                         listDiv.innerHTML += `
                             <div class="task-card p-3 rounded-xl flex items-center gap-4 ${q.isMasterBall ? 'master-priority' : ''}">
-                                <img src="${sprite}" class="w-12 h-12 pixelated brightness-0 opacity-10">
+                                <img src="${s}" class="w-12 h-12 pixelated brightness-0 opacity-10">
                                 <div class="flex-grow min-w-0">
-                                    ${editingId === q.id ? `<input id="edit-${q.id}" type="text" value="${q.text}" class="w-full bg-black/40 border-b border-purple-500 text-sm py-1 outline-none" onkeypress="if(event.key === 'Enter') saveEdit(${q.id})" onblur="saveEdit(${q.id})">` : `<p onclick="toggleTaskExpand(${q.id})" class="text-sm font-semibold text-slate-200 task-text ${isExpanded ? 'expanded' : 'truncate'}">${q.text}</p>`}
+                                    ${editingId === q.id ? `<input id="edit-${q.id}" type="text" value="${q.text}" class="w-full bg-black/40 border-b border-purple-500 text-sm py-1 outline-none" onkeypress="if(event.key === 'Enter') saveEdit(${q.id})" onblur="saveEdit(${q.id})">` : `<p onclick="toggleTaskExpand(${q.id})" class="text-sm font-semibold text-slate-200 task-text ${expandedTaskId === q.id ? 'expanded' : 'truncate'}">${q.text}</p>`}
                                 </div>
                                 <div class="action-pillar flex flex-col items-center gap-3 pl-3">
                                     <button onclick="deleteQuest(${q.id})" class="w-4 h-4 text-slate-700 hover:text-red-500 transition-colors">${TRASH_ICON}</button>
@@ -401,55 +421,62 @@
                 }
             });
 
-            const uniqueDex = [];
-            dex.forEach(p => { if (!uniqueDex.find(u => u.pokeID === p.pokeID && u.isShiny === p.isShiny)) uniqueDex.push(p); });
-            uniqueDex.forEach(p => {
-                const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.isShiny ? 'shiny/' : ''}${p.pokeID}.png`;
-                const isExpanded = expandedDexId === (p.pokeID + (p.isShiny ? '_s' : ''));
-                collectionGrid.innerHTML += `
-                    <div class="dex-card p-3 flex flex-col gap-2 ${p.isShiny ? 'shiny-card' : ''}" onclick="toggleDexExpand('${p.pokeID}${p.isShiny ? '_s' : ''}')">
-                        <div class="flex items-center gap-4">
-                            <img src="${sprite}" class="w-12 h-12 pixelated">
-                            <p class="text-[8px] pixel-font text-green-400 uppercase">${p.pokeName}${p.isShiny ? ' ✨' : ''}</p>
-                        </div>
-                        <div class="${isExpanded ? 'block' : 'hidden'} mt-2 p-2 bg-black/40 rounded-lg border-t border-green-500/20">
-                            <p class="text-[10px] italic text-slate-300 leading-relaxed">${p.description || "A mysterious Pokémon from the Kanto region."}</p>
+            // --- POXEDEX DROPDOWN LOGIC ---
+            if (!dexCollapsed) {
+                const uniqueDex = [];
+                dex.forEach(p => { if (!uniqueDex.find(u => u.pokeID === p.pokeID && u.isShiny === p.isShiny)) uniqueDex.push(p); });
+                uniqueDex.forEach(p => {
+                    const s = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.isShiny ? 'shiny/' : ''}${p.pokeID}.png`;
+                    const isExp = expandedDexId === (p.pokeID + (p.isShiny ? '_s' : ''));
+                    collectionGrid.innerHTML += `
+                        <div class="dex-card p-3 flex flex-col gap-2 ${p.isShiny ? 'shiny-card' : ''}" onclick="toggleDexExpand('${p.pokeID}${p.isShiny ? '_s' : ''}')">
+                            <div class="flex items-center gap-4">
+                                <img src="${s}" class="w-12 h-12 pixelated">
+                                <p class="text-[8px] pixel-font text-green-400 uppercase">${p.pokeName}${p.isShiny ? ' ✨' : ''}</p>
+                            </div>
+                            <div class="${isExp ? 'block' : 'hidden'} mt-2 p-2 bg-black/40 rounded-lg border-t border-green-500/20">
+                                <p class="text-[10px] italic text-slate-300 leading-relaxed">${p.description || "A mysterious Pokémon from the Kanto region."}</p>
+                            </div>
+                        </div>`;
+                });
+            }
+
+            // --- COMPLETED DROPDOWN LOGIC ---
+            if (!doneCollapsed) {
+                quests.filter(q => q.completed).forEach(q => {
+                    doneList.innerHTML += `<div class="flex items-center justify-between p-2 bg-slate-900/30 rounded-lg border border-slate-800 mb-2">
+                        <p class="text-xs line-through text-slate-500 truncate flex-grow">${q.text}</p>
+                        <div class="flex items-center gap-3">
+                            <button onclick="deleteQuest(${q.id})" class="w-4 h-4 text-slate-700 hover:text-red-500 transition-colors">${TRASH_ICON}</button>
+                            <button onclick="toggleQuest(${q.id})" class="text-[10px] text-purple-400 font-bold px-2">UNDO</button>
                         </div>
                     </div>`;
-            });
+                });
+            }
 
-            quests.filter(q => q.completed).forEach(q => {
-                doneList.innerHTML += `<div class="flex items-center justify-between p-2 bg-slate-900/30 rounded-lg border border-slate-800 mb-2">
-                    <p class="text-xs line-through text-slate-500 truncate flex-grow">${q.text}</p>
-                    <div class="flex items-center gap-3">
-                        <button onclick="deleteQuest(${q.id})" class="w-4 h-4 text-slate-700 hover:text-red-500 transition-colors">${TRASH_ICON}</button>
-                        <button onclick="toggleQuest(${q.id})" class="text-[10px] text-purple-400 font-bold px-2">UNDO</button>
-                    </div>
-                </div>`;
-            });
-
-            const currentLvl = Math.floor(totalXP / 500) + 1;
-            const progress = totalXP % 500;
-            document.getElementById('lvl-text').innerText = `LVL ${currentLvl}`;
-            document.getElementById('xp-text').innerText = `${progress} / 500 XP`;
-            document.getElementById('xp-fill').style.width = (progress / 5) + "%";
-            document.getElementById('rank-text').innerText = getRank(currentLvl);
-            document.getElementById('stat-dex').innerText = uniqueDex.length;
+            const lvl = Math.floor(totalXP / 500) + 1;
+            const prog = totalXP % 500;
+            document.getElementById('lvl-text').innerText = `LVL ${lvl}`;
+            document.getElementById('xp-text').innerText = `${prog} / 500 XP`;
+            document.getElementById('xp-fill').style.width = (prog / 5) + "%";
+            document.getElementById('rank-text').innerText = getRank(lvl);
+            document.getElementById('stat-dex').innerText = dex.length;
             document.getElementById('stat-charges').innerText = charges;
             let dots = ""; for(let i=0; i<5; i++) dots += `<div class="w-1.5 h-1.5 rounded-full ${i < battery ? 'bg-purple-500' : 'bg-slate-800'}"></div>`;
             document.getElementById('charge-dots').innerHTML = dots;
-            let badges = ""; for(let i=0; i < Math.min(Math.floor((currentLvl - 1) / 5), 8); i++) badges += `<span class="text-xs">${['🌑','🌊','⚡','🌈','🍀','💖','🌋','❄️'][i]}</span>`;
-            document.getElementById('badge-container').innerHTML = badges;
-            const compEl = document.getElementById('stat-percent');
-            if (compEl) {
+            let bgs = ""; for(let i=0; i < Math.min(Math.floor((lvl - 1) / 5), 8); i++) bgs += `<span class="text-xs">${['🌑','🌊','⚡','🌈','🍀','💖','🌋','❄️'][i]}</span>`;
+            document.getElementById('badge-container').innerHTML = bgs;
+            const cEl = document.getElementById('stat-percent');
+            if (cEl) {
                 const comp = quests.filter(q => q.completed).length;
-                compEl.innerText = quests.length > 0 ? Math.round((comp / quests.length) * 100) + '%' : '0%';
+                cEl.innerText = quests.length > 0 ? Math.round((comp / quests.length) * 100) + '%' : '0%';
             }
             document.getElementById('pendingCount').innerText = (quests.length - quests.filter(q => q.completed).length) + " ONGOING";
         }
 
         function getRank(l) { if(l>30) return "Champion"; if(l>20) return "Elite Four"; if(l>10) return "Gym Leader"; if(l>5) return "Ace Trainer"; return "Novice Trainer"; }
-        function manageMissions() { document.getElementById('missionManager').classList.toggle('hidden'); renderCategories(); }
+        function manageMissions() { document.getElementById('missionManager').classList.toggle('hidden'); render(); }
+        
         function addNewCategory() { 
             const i = document.getElementById('newCatInput'); 
             const d = document.getElementById('newCatDaily');
@@ -458,7 +485,25 @@
                 i.value=''; d.checked=false; saveCategories(); 
             } 
         }
-        function removeCategory(c) { if(confirm("Delete this Arc?")){ categories = categories.filter(x => x.name !== c); saveCategories(); } }
+
+        function editCategory(oldName) {
+            const newName = prompt("Rename Arc:", oldName);
+            if (newName && newName.trim() && newName !== oldName) {
+                const cat = categories.find(c => c.name === oldName);
+                cat.name = newName.trim();
+                quests.forEach(q => { if(q.category === oldName) q.category = newName.trim(); });
+                saveCategories();
+                save();
+            }
+        }
+
+        function removeCategory(name) {
+            if(confirm(`Permanently delete "${name}"? Existing tasks will remain but their Arc will be missing.`)){
+                categories = categories.filter(x => x.name !== name);
+                saveCategories();
+            }
+        }
+
         function saveCategories() { localStorage.setItem('gwapo_categories_v2', JSON.stringify(categories)); render(); }
         function clearAll() { if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); } }
         

@@ -57,7 +57,8 @@
 
         let newWorker;
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(reg => {
+            // SUBFOLDER FIX: Scoped to './' ensures this SW only controls the /test/ folder
+            navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
                 reg.addEventListener('updatefound', () => {
                     newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {
@@ -96,8 +97,6 @@
         
         #battleLog { height: 70px; overflow-y: auto; font-size: 7px; scrollbar-width: none; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; }
         #battleLog::-webkit-scrollbar { display: none; }
-        
-        /* FIX: Adjusted bench layout to prevent face overlap */
         .leader-bench { display: flex; justify-content: center; gap: 8px; opacity: 0.4; margin-bottom: 8px; }
         .user-bench-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; opacity: 0.5; }
         .bench-sprite { width: 32px; height: 32px; }
@@ -107,7 +106,6 @@
 <body class="pb-24 text-left">
 
     <div id="battleScreen" class="hidden fixed inset-0 z-[200] bg-black flex flex-col items-center justify-between p-4 overflow-hidden">
-        
         <div class="w-full flex flex-col items-center mt-2">
             <div id="bossBench" class="leader-bench"></div>
             <img id="leaderImg" class="leader-portrait pixelated">
@@ -168,7 +166,7 @@
         </div>
 
         <div class="flex justify-center gap-6 mt-6">
-            <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DEX</p><p id="stat-dex" class="text-lg font-black">0</p></div>
+            <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DEX</p><p id="stat-dex" class="text-lg font-black text-white">0</p></div>
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">BE</p><p id="stat-be" class="text-lg font-black text-yellow-400">0</p></div>
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">CHARGES</p>
                 <div class="flex items-center gap-1 justify-center">
@@ -287,11 +285,10 @@
         let gymHP = JSON.parse(localStorage.getItem('m_gym_hp')) || null;
 
         let editingId = null; 
-        let expandedTaskId = null; // FIX: Unified naming
+        let expandedTaskId = null;
         let dexExpId = null;
         let pTeam = []; let bTeam = []; let pActive = 0; let bActive = 0;
 
-        // FIX: Support Shiny Art
         const getArt = (id, shiny = false) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${shiny ? 'shiny/' : ''}${id}.png?v=${VER}`;
 
         function getXPLimit() { 
@@ -398,7 +395,7 @@
             pTeam.forEach((p, idx) => { if(idx !== pActive) pBench.innerHTML += `<img src="${getArt(p.pokeID, p.shiny)}" class="bench-sprite pixelated ${p.hp <= 0 ? 'grayscale opacity-10' : ''}">`; });
             
             document.getElementById('battleBEMeter').style.width = Math.min(100, be) + '%';
-            document.getElementById('beLabel').innerText = `ENERGY: ${be}`; // FIX: Show total BE
+            document.getElementById('beLabel').innerText = `ENERGY: ${be}`; 
         }
 
         function executeMove(type) {
@@ -412,10 +409,8 @@
                 const weaknesses = TYPE_ADVANTAGES[b.t] || [];
                 if (weaknesses.includes(p.type)) { dmg *= 2.5; addLog(`${b.n} is weak to ${p.type.toUpperCase()}!`); }
             }
-            
             b.hp -= dmg; addLog(`${p.name} dealt ${Math.round(dmg)} damage.`);
             
-            // FIX: Delayed counter-attack to stop phantom hits
             if (b.hp <= 0) { 
                 b.hp = 0; bActive++; addLog(`${b.n} fainted!`); 
                 upUI(); checkEnd();

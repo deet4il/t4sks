@@ -1,11 +1,10 @@
 const VERSION = 'v13.1.11-testing';
-const CACHE_NAME = `masterball-cache-${VERSION}`;
+const CACHE_NAME = `masterball-testing-cache-${VERSION}`;
 
+// Scoped strictly to the subfolder
 const ASSETS_TO_CACHE = [
-    './',
-    './index.html',
-    './manifest.json',
-    'https://cdn.tailwindcss.com'
+    './',          // Refers to /test/
+    './index.html' // Refers to /test/index.html
 ];
 
 self.addEventListener('install', (event) => {
@@ -22,7 +21,10 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
-                    if (key !== CACHE_NAME) return caches.delete(key);
+                    // Only purge caches starting with this testing prefix
+                    if (key.startsWith('masterball-testing-cache-') && key !== CACHE_NAME) {
+                        return caches.delete(key);
+                    }
                 })
             );
         })
@@ -35,7 +37,10 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => {
             return cache.match(event.request).then((cachedResponse) => {
                 const fetchPromise = fetch(event.request).then((networkResponse) => {
-                    cache.put(event.request, networkResponse.clone());
+                    // Only cache files within this subfolder to avoid root site pollution
+                    if (event.request.url.includes('/test/')) {
+                        cache.put(event.request, networkResponse.clone());
+                    }
                     return networkResponse;
                 });
                 return cachedResponse || fetchPromise;

@@ -180,7 +180,7 @@
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase mb-4">Wipe Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v12.9.1</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v12.9.2</p>
             <p class="text-[7px] pixel-font text-slate-700 uppercase mt-2">Created by: DC Aligaya</p>
         </div>
     </div>
@@ -243,7 +243,7 @@
                     lastCompletedDate: null,
                     pokeID: pokeID,
                     pokeName: pokeData.name.charAt(0).toUpperCase() + pokeData.name.slice(1),
-                    description: flavor ? flavor.flavor_text.replace(/[\f\n\r]/g, ' ') : "A mysterious creature.",
+                    description: flavor ? flavor.flavor_text.replace(/[\f\n\r]/g, ' ') : null,
                     completed: false, isMasterBall: false
                 });
                 input.value = ''; save();
@@ -265,31 +265,46 @@
                     quests.forEach(t => t.isMasterBall = false);
                     q.isMasterBall = true; q.pokeID = legID;
                     q.pokeName = data.name.charAt(0).toUpperCase() + data.name.slice(1);
-                    q.description = flavor ? flavor.flavor_text.replace(/[\f\n\r]/g, ' ') : "Legendary power.";
+                    q.description = flavor ? flavor.flavor_text.replace(/[\f\n\r]/g, ' ') : null;
                 } catch (e) { alert("API Error!"); return; }
             } else { q.isMasterBall = false; }
             save();
         }
 
-        function toggleQuest(id) {
+        // --- HOT-FETCH COMPLETION LOGIC ---
+        async function toggleQuest(id) {
             const q = quests.find(i => i.id === id);
             const today = new Date().toISOString().split('T')[0];
             const oldLvl = Math.floor(totalXP / 500);
+            
             q.completed = !q.completed;
+            
             if (q.completed) {
                 q.lastCompletedDate = today;
-                const isShiny = Math.floor(Math.random() * 10) === 0;
+                const isShiny = Math.floor(Math.random() * 10) === 0; // Shiny 1:10
+                
+                // If the description is missing (Legacy Task), Hot-Fetch it now!
+                if (!q.description) {
+                    try {
+                        const sRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${q.pokeID}`);
+                        const sData = await sRes.json();
+                        const flavor = sData.flavor_text_entries.find(e => e.language.name === 'en');
+                        q.description = flavor ? flavor.flavor_text.replace(/[\f\n\r]/g, ' ') : "A mysterious Pokémon.";
+                    } catch (e) {
+                        q.description = "A mysterious Pokémon from the Kanto region.";
+                    }
+                }
+
                 if (q.isMasterBall) { charges--; totalXP += 150; } 
                 else { totalXP += 50; battery++; if (battery >= 5) { charges++; battery = 0; } }
                 
-                // FIXED: Safety fallback for legacy description
                 if (!dex.find(p => p.taskID === q.id)) {
                     dex.push({ 
                         taskID: q.id, 
                         pokeID: q.pokeID, 
                         pokeName: q.pokeName, 
                         isShiny: isShiny, 
-                        description: q.description || "A mysterious Pokémon from the Kanto region." 
+                        description: q.description
                     });
                 }
             } else { 
@@ -391,7 +406,6 @@
             uniqueDex.forEach(p => {
                 const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.isShiny ? 'shiny/' : ''}${p.pokeID}.png`;
                 const isExpanded = expandedDexId === (p.pokeID + (p.isShiny ? '_s' : ''));
-                // FIXED: Inline fallback for undefined description
                 collectionGrid.innerHTML += `
                     <div class="dex-card p-3 flex flex-col gap-2 ${p.isShiny ? 'shiny-card' : ''}" onclick="toggleDexExpand('${p.pokeID}${p.isShiny ? '_s' : ''}')">
                         <div class="flex items-center gap-4">
@@ -399,7 +413,7 @@
                             <p class="text-[8px] pixel-font text-green-400 uppercase">${p.pokeName}${p.isShiny ? ' ✨' : ''}</p>
                         </div>
                         <div class="${isExpanded ? 'block' : 'hidden'} mt-2 p-2 bg-black/40 rounded-lg border-t border-green-500/20">
-                            <p class="text-[10px] italic text-slate-300 leading-relaxed">${p.description || 'A mysterious Pokémon from the Kanto region.'}</p>
+                            <p class="text-[10px] italic text-slate-300 leading-relaxed">${p.description || "A mysterious Pokémon from the Kanto region."}</p>
                         </div>
                     </div>`;
             });
@@ -444,7 +458,7 @@
                 i.value=''; d.checked=false; saveCategories(); 
             } 
         }
-        function removeCategory(c) { if(confirm("Delete this Arc?")){ categories = categories.filter(x.name!==c); saveCategories(); } }
+        function removeCategory(c) { if(confirm("Delete this Arc?")){ categories = categories.filter(x => x.name !== c); saveCategories(); } }
         function saveCategories() { localStorage.setItem('gwapo_categories_v2', JSON.stringify(categories)); render(); }
         function clearAll() { if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); } }
         

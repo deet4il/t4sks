@@ -16,7 +16,6 @@
     <script>
         let newWorker;
         if ('serviceWorker' in navigator) {
-            // Using relative path for GitHub Pages compatibility
             navigator.serviceWorker.register('sw.js').then(reg => {
                 reg.addEventListener('updatefound', () => {
                     newWorker = reg.installing;
@@ -62,17 +61,17 @@
             <h2 id="gymTitle" class="pixel-font text-blue-400 text-[10px] text-center uppercase"></h2>
             
             <div id="bossSquad" class="flex gap-4 justify-center">
-                <div class="flex flex-col items-center"><div id="hp-boss-0" class="hp-bar-container w-12 mb-1"><div class="hp-fill"></div></div><img id="sprite-boss-0" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
-                <div class="flex flex-col items-center scale-125"><div id="hp-boss-active" class="hp-bar-container w-20 mb-1"><div class="hp-fill"></div></div><img id="sprite-boss-active" class="w-24 h-24 pixelated animate-bounce"></div>
-                <div class="flex flex-col items-center"><div id="hp-boss-2" class="hp-bar-container w-12 mb-1"><div class="hp-fill"></div></div><img id="sprite-boss-2" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
+                <div class="flex flex-col items-center"><div class="hp-bar-container w-12 mb-1"><div id="hp-boss-0" class="hp-fill"></div></div><img id="sprite-boss-0" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
+                <div class="flex flex-col items-center scale-125"><div class="hp-bar-container w-20 mb-1"><div id="hp-boss-active" class="hp-fill"></div></div><img id="sprite-boss-active" class="w-24 h-24 pixelated animate-bounce"></div>
+                <div class="flex flex-col items-center"><div class="hp-bar-container w-12 mb-1"><div id="hp-boss-2" class="hp-fill"></div></div><img id="sprite-boss-2" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
             </div>
 
             <div id="battleMsg" class="bg-slate-900 p-3 rounded-xl border border-white/10 text-[10px] italic text-slate-300 text-center">Prepare for battle!</div>
 
             <div id="playerSquad" class="flex gap-4 justify-center">
-                <div class="flex flex-col items-center"><img id="sprite-player-0" class="w-12 h-12 pixelated opacity-30 grayscale"><div id="hp-player-0" class="hp-bar-container w-12 mt-1"><div class="hp-fill hp-fill-player"></div></div></div>
-                <div class="flex flex-col items-center scale-125"><img id="sprite-player-active" class="w-24 h-24 pixelated"><div id="hp-player-active" class="hp-bar-container w-20 mt-1"><div class="hp-fill hp-fill-player"></div></div></div>
-                <div class="flex flex-col items-center"><img id="sprite-player-2" class="w-12 h-12 pixelated opacity-30 grayscale"><div id="hp-player-2" class="hp-bar-container w-12 mt-1"><div class="hp-fill hp-fill-player"></div></div></div>
+                <div class="flex flex-col items-center"><img id="sprite-player-0" class="w-12 h-12 pixelated opacity-30 grayscale"><div class="hp-bar-container w-12 mt-1"><div id="hp-player-0" class="hp-fill hp-fill-player"></div></div></div>
+                <div class="flex flex-col items-center scale-125"><img id="sprite-player-active" class="w-24 h-24 pixelated"><div class="hp-bar-container w-20 mt-1"><div id="hp-player-active" class="hp-fill hp-fill-player"></div></div></div>
+                <div class="flex flex-col items-center"><img id="sprite-player-2" class="w-12 h-12 pixelated opacity-30 grayscale"><div class="hp-bar-container w-12 mt-1"><div id="hp-player-2" class="hp-fill hp-fill-player"></div></div></div>
             </div>
 
             <div id="teamPicker" class="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto bg-slate-900/50 p-2 rounded-xl"></div>
@@ -187,7 +186,7 @@
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="wipe()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 uppercase mb-4">Wipe All Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">v13.1 Deployment Ready</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">v13.1.1 Stability Deployment</p>
             <p class="text-[7px] pixel-font text-slate-800 uppercase mt-2">DC Aligaya</p>
         </div>
     </div>

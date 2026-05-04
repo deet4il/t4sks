@@ -15,30 +15,27 @@
 
     <script>
         // --- DATA RECOVERY MIGRATION (v13.1.2) ---
-       (function migrateData() {
-          const migrations = [
-              { old: 'gwapo_tasks_v6', new: 'm_tasks' },
-              { old: 'gwapo_dex_v4', new: 'm_dex' },
-              { old: 'gwapo_xp_v2', new: 'm_xp' },
-              { old: 'gwapo_be_v2', new: 'm_be' },
-              { old: 'gwapo_badges_v2', new: 'm_badges' },
-              { old: 'gwapo_charges_v2', new: 'm_charges' },
-              { old: 'gwapo_battery_v2', new: 'm_battery' },
-              { old: 'gwapo_categories_v2', new: 'm_arcs' }
-          ];
+        (function migrateData() {
+            const migrations = [
+                { old: 'gwapo_tasks_v6', new: 'm_tasks' },
+                { old: 'gwapo_dex_v4', new: 'm_dex' },
+                { old: 'gwapo_xp_v2', new: 'm_xp' },
+                { old: 'gwapo_be_v2', new: 'm_be' },
+                { old: 'gwapo_badges_v2', new: 'm_badges' },
+                { old: 'gwapo_charges_v2', new: 'm_charges' },
+                { old: 'gwapo_battery_v2', new: 'm_battery' },
+                { old: 'gwapo_categories_v2', new: 'm_arcs' }
+            ];
+            migrations.forEach(m => {
+                const oldData = localStorage.getItem(m.old);
+                const newData = localStorage.getItem(m.new);
+                if (oldData && (!newData || newData === '[]' || newData === '0' || newData === 'null')) {
+                    localStorage.setItem(m.new, oldData);
+                    console.log(`Successfully restored ${m.old} to ${m.new}`);
+                }
+            });
+        })();
 
-          migrations.forEach(m => {
-              const oldData = localStorage.getItem(m.old);
-              const newData = localStorage.getItem(m.new);
-        
-              // If old data exists and new data is empty/default, migrate it!
-              if (oldData && (!newData || newData === '[]' || newData === '0' || newData === 'null')) {
-                  localStorage.setItem(m.new, oldData);
-                  console.log(`Successfully restored ${m.old} to ${m.new}`);
-        }
-    });
-})();
-// ------------------------------------------
         let newWorker;
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => {
@@ -84,30 +81,24 @@
     <div id="battleScreen" class="hidden fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm space-y-6">
             <h2 id="gymTitle" class="pixel-font text-blue-400 text-[10px] text-center uppercase"></h2>
-            
             <div id="bossSquad" class="flex gap-4 justify-center">
                 <div class="flex flex-col items-center"><div class="hp-bar-container w-12 mb-1"><div id="hp-boss-0" class="hp-fill"></div></div><img id="sprite-boss-0" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
                 <div class="flex flex-col items-center scale-125"><div class="hp-bar-container w-20 mb-1"><div id="hp-boss-active" class="hp-fill"></div></div><img id="sprite-boss-active" class="w-24 h-24 pixelated animate-bounce"></div>
                 <div class="flex flex-col items-center"><div class="hp-bar-container w-12 mb-1"><div id="hp-boss-2" class="hp-fill"></div></div><img id="sprite-boss-2" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
             </div>
-
             <div id="battleMsg" class="bg-slate-900 p-3 rounded-xl border border-white/10 text-[10px] italic text-slate-300 text-center">Prepare for battle!</div>
-
             <div id="playerSquad" class="flex gap-4 justify-center">
                 <div class="flex flex-col items-center"><img id="sprite-player-0" class="w-12 h-12 pixelated opacity-30 grayscale"><div class="hp-bar-container w-12 mt-1"><div id="hp-player-0" class="hp-fill hp-fill-player"></div></div></div>
                 <div class="flex flex-col items-center scale-125"><img id="sprite-player-active" class="w-24 h-24 pixelated"><div class="hp-bar-container w-20 mt-1"><div id="hp-player-active" class="hp-fill hp-fill-player"></div></div></div>
                 <div class="flex flex-col items-center"><img id="sprite-player-2" class="w-12 h-12 pixelated opacity-30 grayscale"><div class="hp-bar-container w-12 mt-1"><div id="hp-player-2" class="hp-fill hp-fill-player"></div></div></div>
             </div>
-
             <div id="teamPicker" class="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto bg-slate-900/50 p-2 rounded-xl"></div>
-            
             <div id="battleMoves" class="hidden grid grid-cols-2 gap-2">
                 <button onclick="executeMove('basic')" class="bg-slate-800 p-3 text-[8px] pixel-font rounded uppercase">Basic</button>
                 <button onclick="executeMove('elemental')" class="bg-blue-900/50 p-3 text-[8px] pixel-font rounded uppercase border border-blue-500/50">Elemental</button>
                 <button onclick="executeMove('burst')" class="col-span-2 bg-purple-900/40 p-3 text-[8px] pixel-font rounded border border-purple-500 uppercase">Burst Attack</button>
                 <div class="col-span-2 mt-2 px-1"><div class="hp-bar-container h-4"><div id="battleBEMeter" class="be-meter"></div></div></div>
             </div>
-            
             <button onclick="toggleBattleScreen(false)" class="block mx-auto text-[7px] pixel-font text-slate-600 uppercase">Withdraw</button>
         </div>
     </div>
@@ -122,7 +113,6 @@
         <p id="rank-text" class="pixel-font text-[7px] text-purple-300 mb-4 uppercase">Novice Trainer</p>
         <div id="badge-container" class="flex justify-center gap-2 mb-4"></div>
         <button onclick="toggleManual()" class="pixel-font text-[7px] text-purple-300 border border-purple-500/50 px-2 py-1 rounded uppercase">App Guide</button>
-
         <div class="max-w-xs mx-auto px-4 mt-6">
             <div class="flex justify-between items-end mb-1">
                 <span id="lvl-text" class="pixel-font text-[9px] text-green-400">LVL 1</span>
@@ -130,7 +120,6 @@
             </div>
             <div class="xp-bar-container"><div id="xp-fill"></div></div>
         </div>
-
         <div class="flex justify-center gap-6 mt-6">
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DEX</p><p id="stat-dex" class="text-lg font-black">0</p></div>
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DONE</p><p id="stat-percent" class="text-lg font-black text-green-400">0%</p></div>
@@ -211,14 +200,12 @@
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="wipe()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 uppercase mb-4">Wipe All Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">GOTTA DO 'EM ALL v13.1.1</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">GOTTA DO 'EM ALL v13.1.2</p>
             <p class="text-[7px] pixel-font text-slate-800 uppercase mt-2">Created by: DC Aligaya</p>
-            <p class="text-[7px] pixel-font text-slate-800 uppercase mt-2">contact me at novembergray1992@gmail.com</p>
         </div>
     </div>
 
     <script>
-        // --- GYMS ---
         const GYMS = [
             { l: 3, leader: "Brock", badge: "Boulder", type: "rock", squad: [74, 111, 95] },
             { l: 6, leader: "Misty", badge: "Cascade", type: "water", squad: [120, 117, 121] },
@@ -234,7 +221,6 @@
         const TRASH_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
         const MASTER_STAR = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
 
-        // --- CORE STATE ---
         let be = JSON.parse(localStorage.getItem('m_be')) || 0;
         let badges = JSON.parse(localStorage.getItem('m_badges')) || [];
         let whitedOut = JSON.parse(localStorage.getItem('m_whiteout')) || false;
@@ -244,7 +230,6 @@
         let xp = JSON.parse(localStorage.getItem('m_xp')) || 0;
         let battery = JSON.parse(localStorage.getItem('m_battery')) || 0;
         let charges = JSON.parse(localStorage.getItem('m_charges')) || 0;
-        
         let collapsedArcs = JSON.parse(localStorage.getItem('m_coll_arcs')) || [];
         let dexCollapsed = JSON.parse(localStorage.getItem('m_dex_coll')) || false;
         let doneCollapsed = JSON.parse(localStorage.getItem('m_done_coll')) || false;
@@ -252,11 +237,20 @@
         let expandedId = null;
         let dexExpId = null;
 
-        // Battle Session
         let pTeam = []; let bTeam = []; let pActive = 0; let bActive = 0;
 
         function getXPLimit() { return badges.includes("Cascade") ? 475 : 500; }
         function getLvl() { return Math.floor(xp / getXPLimit()) + 1; }
+
+        function checkDailyReset() {
+            const today = new Date().toISOString().split('T')[0];
+            let changed = false;
+            tasks.forEach(q => {
+                const arc = arcs.find(a => a.name === q.category);
+                if (arc && arc.daily && q.done && q.last !== today) { q.done = false; changed = true; }
+            });
+            if (changed) save();
+        }
 
         async function addQuest() {
             const i = document.getElementById('taskInput'); const c = document.getElementById('categorySelect').value;
@@ -362,6 +356,7 @@
             localStorage.setItem('m_xp', JSON.stringify(xp)); localStorage.setItem('m_be', JSON.stringify(be));
             localStorage.setItem('m_tasks', JSON.stringify(tasks)); localStorage.setItem('m_dex', JSON.stringify(dex));
             localStorage.setItem('m_charges', JSON.stringify(charges)); localStorage.setItem('m_battery', JSON.stringify(battery));
+            localStorage.setItem('m_whiteout', JSON.stringify(whitedOut)); localStorage.setItem('m_badges', JSON.stringify(badges));
             render();
         }
 
@@ -385,7 +380,9 @@
                     let items = act.map(t => `
                         <div class="task-card p-3 rounded-xl flex items-center gap-4 ${t.mb ? 'master-priority' : ''}">
                             <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${t.pokeID}.png" class="w-10 h-10 pixelated brightness-0 opacity-10">
-                            <div class="flex-grow min-w-0"><p onclick="expandedId = expandedId === ${t.id} ? null : ${t.id}; render();" class="text-sm font-semibold task-text ${expandedId === t.id ? 'expanded' : 'truncate'}">${t.text}</p></div>
+                            <div class="flex-grow min-w-0">
+                                ${editingId === t.id ? `<input id="edit-${t.id}" type="text" value="${t.text}" class="w-full bg-black/40 border-b border-purple-500 text-sm py-1 outline-none" onkeypress="if(event.key === 'Enter') saveEdit(${t.id})" onblur="saveEdit(${t.id})">` : `<p onclick="expandedId = expandedId === ${t.id} ? null : ${t.id}; render();" class="text-sm font-semibold task-text ${expandedId === t.id ? 'expanded' : 'truncate'}">${t.text}</p>`}
+                            </div>
                             <div class="action-pillar flex flex-col items-center gap-2 pl-2">
                                 <button onclick="delT(${t.id})" class="w-4 h-4 text-slate-700">${TRASH_ICON}</button>
                                 <button onclick="setMB(${t.id})" class="w-4 h-4 ${t.mb ? 'text-purple-400' : 'text-slate-700'}">${MASTER_STAR}</button>
@@ -420,6 +417,7 @@
         function editArc(o) { const n = prompt("Rename:", o); if(n && n.trim()){ arcs.find(a => a.name === o).name = n.trim(); tasks.forEach(t => { if(t.category === o) t.category = n.trim(); }); saveArcs(); save(); } }
         function delT(id) { if(confirm("Delete Task?")){ tasks = tasks.filter(t => t.id !== id); dex = dex.filter(p => p.tID !== id); save(); } }
         function editT(id) { editingId = id; render(); const i = document.getElementById(`edit-${id}`); if(i){ i.focus(); i.select(); } }
+        function saveEdit(id) { const i = document.getElementById(`edit-${id}`); if (i && i.value.trim()) { tasks.find(t => t.id === id).text = i.value.trim(); } editingId = null; save(); }
         async function setMB(id) {
             const q = tasks.find(t => t.id === id); if(q.mb) { q.mb = false; save(); return; }
             if (charges <= 0) { alert("No Master Ball charges!"); return; }

@@ -1,4 +1,4 @@
-const VERSION = 'v13.1.12-testing';
+const VERSION = 'v13.1.13-testing';
 const CACHE_NAME = `masterball-testing-cache-${VERSION}`;
 
 const ASSETS_TO_CACHE = [

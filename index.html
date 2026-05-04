@@ -288,14 +288,15 @@
                 if (activeInCat.length > 0) {
                     const section = document.createElement('div');
                     section.innerHTML = `
-                        <div class="category-header flex items-center justify-between p-2 mt-6 mb-3 rounded-lg" onclick="toggleArc('${cat}')">
-                            <h3 class="pixel-font text-[8px] text-purple-400 uppercase tracking-widest">${cat}</h3>
-                            <svg class="chevron w-3 h-3 text-purple-500 ${isCollapsed ? 'collapsed' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                        <div class="space-y-3 ${isCollapsed ? 'hidden' : ''}" id="list-${cat.replace(/\s/g,'')}"></div>`;
-                    storyContainer.appendChild(section);
-                    
-                    const listDiv = document.getElementById(`list-${cat.replace(/\s/g,'')}`);
+    <div class="category-header flex items-center justify-between p-2 mt-6 mb-3 rounded-lg" onclick="toggleArc('${cat}')">
+        <h3 class="pixel-font text-[8px] text-purple-400 uppercase tracking-widest">${cat}</h3>
+        <svg class="chevron w-3 h-3 text-purple-500 ${isCollapsed ? 'collapsed' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+    </div>
+    <div class="space-y-3 ${isCollapsed ? 'hidden' : ''}" id="list-${cat.replace(/\W/g,'')}"></div>`;
+storyContainer.appendChild(section);
+
+const listDiv = document.getElementById(`list-${cat.replace(/\W/g,'')}`);
+if (!listDiv) return; // This is the Guard Clause that stops the error pop-up
                     activeInCat.forEach(q => {
                         const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
                         const isEditing = editingId === q.id;

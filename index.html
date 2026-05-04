@@ -105,7 +105,7 @@
         <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-8 shadow-xl text-left">
             <div class="flex flex-col gap-3">
                 <div class="flex gap-2">
-                    <input id="taskInput" type="text" placeholder="Assign new quest..." 
+                    <input id="taskInput" type="text" placeholder="Add new quest..." 
                         onkeypress="if(event.key === 'Enter') addQuest()"
                         class="flex-grow bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500">
                     <button id="addButton" onclick="addQuest()" class="bg-purple-600 hover:bg-purple-500 text-white px-6 rounded-xl font-bold">+</button>
@@ -144,7 +144,7 @@
         </div>
 
         <div class="mt-8 text-center">
-            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 tracking-widest uppercase">Mission Report</h2>
+            <h2 class="pixel-font text-[9px] mb-4 text-slate-500 tracking-widest uppercase">Completed quest(s)</h2>
             <div id="doneList" class="space-y-2 opacity-80"></div>
         </div>
 

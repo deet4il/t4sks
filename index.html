@@ -22,15 +22,14 @@
                 { old: 'gwapo_xp_v2', new: 'm_xp' },
                 { old: 'gwapo_be_v2', new: 'm_be' },
                 { old: 'gwapo_badges_v2', new: 'm_badges' },
-                { old: 'gwapo_charges_v2', new: 'm_charges' },
-                { old: 'gwapo_battery_v2', new: 'm_battery' },
+                { old: 'gwapo_m_charges', new: 'm_charges' },
+                { old: 'gwapo_m_battery', new: 'm_battery' },
                 { old: 'gwapo_categories_v2', new: 'm_arcs' }
             ];
 
             migrations.forEach(m => {
                 let oldData = localStorage.getItem(m.old);
                 let newData = localStorage.getItem(m.new);
-                
                 if (oldData && (!newData || newData === '[]' || newData === '0' || newData === 'null')) {
                     let parsed = JSON.parse(oldData);
                     if (m.new === 'm_tasks' && Array.isArray(parsed)) {
@@ -48,7 +47,8 @@
                             name: p.name || p.pokeName,
                             desc: p.desc || p.description || "A mysterious Pokémon.",
                             shiny: p.shiny !== undefined ? p.shiny : p.isShiny,
-                            tID: p.tID || p.taskID
+                            tID: p.tID || p.taskID,
+                            lvl: p.lvl || p.catchLevel || 1
                         }));
                     }
                     localStorage.setItem(m.new, JSON.stringify(parsed));
@@ -150,8 +150,13 @@
 
         <div class="flex justify-center gap-6 mt-6">
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DEX</p><p id="stat-dex" class="text-lg font-black">0</p></div>
-            <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DONE</p><p id="stat-percent" class="text-lg font-black text-green-400">0%</p></div>
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">BE</p><p id="stat-be" class="text-lg font-black text-yellow-400">0</p></div>
+            <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">CHARGES</p>
+                <div class="flex items-center gap-1 justify-center">
+                    <p id="stat-charges" class="text-lg font-black text-purple-400">0</p>
+                    <div id="charge-dots" class="flex flex-row gap-0.5"></div>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -162,7 +167,12 @@
     </div>
 
     <div class="max-w-xl mx-auto px-4">
-        <div id="appManual" class="hidden mb-8 bg-purple-900/10 border border-purple-500/30 rounded-2xl p-6 space-y-4">
+        <div id="whiteOutBox" class="hidden bg-red-900/30 border border-red-500/50 p-4 rounded-2xl mb-8 text-center">
+            <p class="pixel-font text-[8px] text-red-400 uppercase">You whited out!</p>
+            <p class="text-[10px] text-slate-300 mt-1">Complete 1 task to revive your team.</p>
+        </div>
+
+        <div id="appManual" class="hidden mb-8 bg-purple-900/10 border border-purple-500/30 rounded-2xl p-6 space-y-4 shadow-2xl">
             <h2 class="pixel-font text-[10px] text-purple-400 uppercase border-b border-purple-500/30 pb-2">App Guide</h2>
             <div class="text-xs text-slate-400 space-y-4">
                 <p><strong>The Purpose:</strong> This app turns your to-do lists into a manageable "Active Campaign." It’s designed to stop you from feeling scattered by turning your daily grind into a focused adventure.</p>
@@ -182,7 +192,7 @@
             <div class="flex flex-col gap-3">
                 <div class="flex gap-2">
                     <input id="taskInput" type="text" placeholder="Add new quest..." class="flex-grow bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500">
-                    <button onclick="addQuest()" class="bg-purple-600 hover:bg-purple-500 px-6 rounded-xl font-bold">+</button>
+                    <button id="addButton" onclick="addQuest()" class="bg-purple-600 hover:bg-purple-500 px-6 rounded-xl font-bold">+</button>
                 </div>
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
@@ -209,11 +219,6 @@
             <div id="arcList" class="space-y-2"></div>
         </div>
 
-        <div id="whiteOutBox" class="hidden bg-red-900/30 border border-red-500/50 p-4 rounded-2xl mb-8 text-center">
-            <p class="pixel-font text-[8px] text-red-400 uppercase">You whited out!</p>
-            <p class="text-[10px] text-slate-300 mt-1">Complete 1 task to revive your team.</p>
-        </div>
-
         <div id="activeCampaign" class="space-y-6 mb-10"></div>
 
         <div class="mt-12 p-4 bg-black/30 rounded-2xl border border-slate-800">
@@ -227,10 +232,9 @@
         </div>
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
-            <button onclick="wipe()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 uppercase mb-4">Wipe All Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">GOTTA DO 'EM ALL v13.1.3</p>
+            <button onclick="wipe()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 uppercase mb-4">Wipe Data</button>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">v13.1.3 Recovery Build</p>
             <p class="text-[7px] pixel-font text-slate-800 uppercase mt-2">Created by: DC Aligaya</p>
-            <p class="text-[7px] pixel-font text-slate-800 uppercase mt-2">contact me at novembergray1992@gmail.com</p>
         </div>
     </div>
 
@@ -283,7 +287,9 @@
 
         async function addQuest() {
             const i = document.getElementById('taskInput'); const c = document.getElementById('categorySelect').value;
+            const btn = document.getElementById('addButton');
             if (!i.value.trim() || arcs.length === 0) return;
+            btn.innerText = "..."; btn.disabled = true;
             const id = Math.floor(Math.random() * 151) + 1;
             try {
                 const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`); const d = await r.json();
@@ -291,11 +297,11 @@
                 const f = sd.flavor_text_entries.find(e => e.language.name === 'en');
                 tasks.push({
                     id: Date.now(), text: i.value.trim(), category: c, done: false, mb: false,
-                    pokeID: id, pokeName: d.name.toUpperCase(), pokeType: d.types[0].type.name,
+                    pokeID: id, name: d.name.toUpperCase(), type: d.types[0].type.name,
                     lvl: getLvl(), desc: f ? f.flavor_text.replace(/[\f\n\r]/g, ' ') : "Kanto Pokemon"
                 });
                 i.value = ''; save();
-            } catch (e) { alert("PokeAPI Error."); }
+            } catch (e) { alert("PokeAPI Error."); } finally { btn.innerText = "+"; btn.disabled = false; }
         }
 
         function toggleQuest(id) {
@@ -312,10 +318,14 @@
                 xp += xg;
                 battery++; if (battery >= (badges.includes("Thunder") ? 4 : 5)) { charges++; battery = 0; }
                 if (!dex.find(p => p.tID === q.id)) {
-                    const s = Math.floor(Math.random() * (badges.includes("Soul") && q.mb ? 5 : 10)) === 0;
-                    dex.push({ tID: q.id, pokeID: q.pokeID, name: q.pokeName || q.name, type: q.pokeType, shiny: s, desc: q.desc, lvl: q.lvl });
+                    const shinyRate = (badges.includes("Soul") && q.mb) ? 5 : 10;
+                    const s = Math.floor(Math.random() * shinyRate) === 0;
+                    dex.push({ tID: q.id, pokeID: q.pokeID, name: q.name, type: q.type, shiny: s, desc: q.desc, lvl: q.lvl });
                 }
-            } else { dex = dex.filter(p => p.tID !== q.id); xp = Math.max(0, xp - 50); }
+            } else { 
+                dex = dex.filter(p => p.tID !== q.id); xp = Math.max(0, xp - 50); 
+                if (!q.mb) { if (battery > 0) battery--; else if (charges > 0) { charges--; battery = 4; } }
+            }
             save();
         }
 
@@ -348,11 +358,11 @@
             const ba = bTeam[bActive]; const pa = pTeam[pActive];
             const bs = document.getElementById('sprite-boss-active'); const ps = document.getElementById('sprite-player-active');
             if(ba) { bs.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${ba.id}.png`; document.getElementById('hp-boss-active').style.width = ba.hp + '%'; }
-            if(pa) { ps.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pa.pokeID || pa.id}.png`; document.getElementById('hp-player-active').style.width = pa.hp + '%'; }
+            if(pa) { ps.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pa.pokeID}.png`; document.getElementById('hp-player-active').style.width = pa.hp + '%'; }
             [0, 2].forEach(i => {
                 const bp = bTeam[i]; const pp = pTeam[i];
                 document.getElementById(`sprite-boss-${i}`).src = bp ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${bp.id}.png` : '';
-                document.getElementById(`sprite-player-${i}`).src = pp ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pp.pokeID || pp.id}.png` : '';
+                document.getElementById(`sprite-player-${i}`).src = pp ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pp.pokeID}.png` : '';
                 document.getElementById(`hp-boss-${i}`).style.width = (bp ? bp.hp : 0) + '%';
                 document.getElementById(`hp-player-${i}`).style.width = (pp ? pp.hp : 0) + '%';
             });
@@ -377,8 +387,8 @@
         }
 
         function checkEnd() {
-            if (bActive >= 3) { alert("Victory!"); badges.push(GYMS[badges.length].badge); localStorage.setItem('m_badges', JSON.stringify(badges)); toggleBattleScreen(false); save(); }
-            else if (pActive >= 3) { alert("Whited Out!"); whitedOut = true; localStorage.setItem('m_whiteout', true); toggleBattleScreen(false); render(); }
+            if (bActive >= 3) { alert("Victory!"); badges.push(GYMS[badges.length].badge); toggleBattleScreen(false); save(); }
+            else if (pActive >= 3) { alert("Whited Out!"); whitedOut = true; toggleBattleScreen(false); render(); }
         }
 
         function save() {
@@ -432,13 +442,17 @@
             document.getElementById('xp-fill').style.width = (xp % getXPLimit() / (getXPLimit()/100)) + '%';
             document.getElementById('stat-dex').innerText = dex.length;
             document.getElementById('stat-be').innerText = be;
-            document.getElementById('badge-container').innerHTML = badges.map(b => `<span class="text-xs" title="${b} Badge active">🏆</span>`).join('');
+            document.getElementById('stat-charges').innerText = charges;
+            let dots = ""; for(let i=0; i < (badges.includes("Thunder") ? 4 : 5); i++) dots += `<div class="w-1.5 h-1.5 rounded-full ${i < battery ? 'bg-purple-500' : 'bg-slate-800'}"></div>`;
+            document.getElementById('charge-dots').innerHTML = dots;
+            document.getElementById('badge-container').innerHTML = badges.map(b => `<span class="text-xs">🏆</span>`).join('');
             document.getElementById('pendingCount').innerText = tasks.filter(t => !t.done).length + " ONGOING";
             document.getElementById('dexChev').className = `chevron w-3 h-3 text-green-500 ${dexCollapsed ? 'collapsed' : ''}`;
             document.getElementById('doneChev').className = `chevron w-3 h-3 text-slate-500 ${doneCollapsed ? 'collapsed' : ''}`;
         }
 
         function toggleBattleScreen(v) { document.getElementById('battleScreen').classList.toggle('hidden', !v); }
+        function toggleManual() { document.getElementById('appManual').classList.toggle('hidden'); }
         function toggleArcMenu() { document.getElementById('arcMenu').classList.toggle('hidden'); }
         function createArc() { const n = document.getElementById('newArcName'); const d = document.getElementById('isDailyArc'); if(n.value.trim()){ arcs.push({name: n.value.trim(), daily: d.checked}); n.value=''; d.checked=false; saveArcs(); } }
         function saveArcs() { localStorage.setItem('m_arcs', JSON.stringify(arcs)); render(); }
@@ -455,14 +469,14 @@
                 const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${lid}`); const d = await r.json();
                 const sr = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${lid}`); const sd = await sr.json();
                 const f = sd.flavor_text_entries.find(e => e.language.name === 'en');
-                q.mb = true; q.pokeID = lid; q.pokeName = d.name.toUpperCase(); q.pokeType = d.types[0].type.name;
+                q.mb = true; q.pokeID = lid; q.name = d.name.toUpperCase();
                 q.desc = f ? f.flavor_text.replace(/[\f\n\r]/g, ' ') : "Legendary"; charges--; save();
             } catch (e) { alert("API Error."); }
         }
         function toggleArc(n) { if(collapsedArcs.includes(n)) collapsedArcs = collapsedArcs.filter(x => x !== n); else collapsedArcs.push(n); localStorage.setItem('m_coll_arcs', JSON.stringify(collapsedArcs)); render(); }
         function toggleDex() { dexCollapsed = !dexCollapsed; localStorage.setItem('m_dex_coll', dexCollapsed); render(); }
         function toggleDone() { doneCollapsed = !doneCollapsed; localStorage.setItem('m_done_coll', doneCollapsed); render(); }
-        function wipe() { if(confirm("Erase all progress?")){ localStorage.clear(); location.reload(); } }
+        function wipe() { if(confirm("Wipe everything?")){ localStorage.clear(); location.reload(); } }
 
         checkDailyReset(); render();
     </script>

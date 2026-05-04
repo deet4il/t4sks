@@ -14,7 +14,7 @@
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/188/188918.png">
 
     <script>
-        // --- DATA RECOVERY MIGRATION (v13.1.5) ---
+        // --- DATA RECOVERY MIGRATION (v13.1.6) ---
         (function migrateData() {
             const migrations = [
                 { old: 'gwapo_tasks_v6', new: 'm_tasks' },
@@ -26,7 +26,6 @@
                 { old: 'gwapo_m_battery', new: 'm_battery' },
                 { old: 'gwapo_categories_v2', new: 'm_arcs' }
             ];
-
             migrations.forEach(m => {
                 let oldData = localStorage.getItem(m.old);
                 let newData = localStorage.getItem(m.new);
@@ -34,8 +33,7 @@
                     let parsed = JSON.parse(oldData);
                     if (m.new === 'm_tasks' && Array.isArray(parsed)) {
                         parsed = parsed.map(t => ({
-                            ...t,
-                            done: t.done !== undefined ? t.done : t.completed,
+                            ...t, done: t.done !== undefined ? t.done : t.completed,
                             mb: t.mb !== undefined ? t.mb : t.isMasterBall,
                             desc: t.desc || t.description || "Kanto Pokemon",
                             name: t.pokeName || t.name
@@ -43,8 +41,7 @@
                     }
                     if (m.new === 'm_dex' && Array.isArray(parsed)) {
                         parsed = parsed.map(p => ({
-                            ...p,
-                            name: p.name || p.pokeName,
+                            ...p, name: p.name || p.pokeName,
                             desc: p.desc || p.description || "A mysterious Pokémon.",
                             shiny: p.shiny !== undefined ? p.shiny : p.isShiny,
                             tID: p.tID || p.taskID,
@@ -94,53 +91,57 @@
         .be-meter { background: linear-gradient(90deg, #f59e0b, #fbbf24); height: 100%; transition: width 0.3s ease; }
         .chevron { transition: transform 0.3s; }
         .chevron.collapsed { transform: rotate(-90deg); }
-        .leader-portrait { height: 100px; object-fit: contain; }
+        
+        /* REVAMPED BATTLE LAYOUT */
+        .battle-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .bench-side { width: 50px; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; opacity: 0.6; }
+        .leader-portrait { height: 80px; width: 80px; object-fit: contain; border-radius: 50%; border: 2px solid #312e81; background: #1e1b4b; }
     </style>
 </head>
 <body class="pb-24 text-left">
 
-    <div id="battleScreen" class="hidden fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-4">
-        <div class="w-full max-w-sm space-y-4">
-            <div class="flex flex-col items-center gap-2">
-                <img id="leaderImg" class="leader-portrait pixelated">
-                <h2 id="gymTitle" class="pixel-font text-blue-400 text-[10px] text-center uppercase"></h2>
-            </div>
+    <div id="battleScreen" class="hidden fixed inset-0 z-[200] bg-black flex flex-col items-center justify-between p-4">
+        <div class="w-full flex flex-col items-center gap-2 mt-4">
+            <img id="leaderImg" class="leader-portrait pixelated shadow-2xl">
+            <h2 id="gymTitle" class="pixel-font text-blue-400 text-[9px] uppercase"></h2>
+        </div>
+        
+        <div class="w-full flex items-center justify-between px-2">
+            <div id="bossBench" class="bench-side"></div>
             
-            <div id="bossSquad" class="flex gap-4 justify-center">
-                <div class="flex flex-col items-center"><div class="hp-bar-container w-12 mb-1"><div id="hp-boss-0" class="hp-fill"></div></div><img id="sprite-boss-0" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
-                <div class="flex flex-col items-center scale-125">
+            <div class="battle-center space-y-8">
+                <div class="flex flex-col items-center">
                     <p id="bossActiveName" class="pixel-font text-[6px] text-red-400 mb-1 uppercase"></p>
-                    <div class="hp-bar-container w-20 mb-1"><div id="hp-boss-active" class="hp-fill"></div></div>
-                    <img id="sprite-boss-active" class="w-24 h-24 pixelated animate-bounce">
+                    <div class="hp-bar-container w-24 mb-1"><div id="hp-boss-active" class="hp-fill"></div></div>
+                    <img id="sprite-boss-active" class="w-28 h-28 pixelated animate-bounce">
                 </div>
-                <div class="flex flex-col items-center"><div class="hp-bar-container w-12 mb-1"><div id="hp-boss-2" class="hp-fill"></div></div><img id="sprite-boss-2" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
-            </div>
-
-            <div id="battleMsg" class="bg-slate-900 p-3 rounded-xl border border-white/10 text-[10px] italic text-slate-300 text-center">Siege Mode Active: HP is saved!</div>
-
-            <div id="playerSquad" class="flex gap-4 justify-center">
-                <div class="flex flex-col items-center"><img id="sprite-player-0" class="w-12 h-12 pixelated opacity-30 grayscale"><div class="hp-bar-container w-12 mt-1"><div id="hp-player-0" class="hp-fill hp-fill-player"></div></div></div>
-                <div class="flex flex-col items-center scale-125">
-                    <img id="sprite-player-active" class="w-24 h-24 pixelated">
-                    <div class="hp-bar-container w-20 mt-1"><div id="hp-player-active" class="hp-fill hp-fill-player"></div></div>
+                
+                <div class="flex flex-col items-center">
+                    <img id="sprite-player-active" class="w-28 h-28 pixelated">
+                    <div class="hp-bar-container w-24 mt-1"><div id="hp-player-active" class="hp-fill hp-fill-player"></div></div>
                     <p id="playerActiveName" class="pixel-font text-[6px] text-green-400 mt-1 uppercase"></p>
                 </div>
-                <div class="flex flex-col items-center"><img id="sprite-player-2" class="w-12 h-12 pixelated opacity-30 grayscale"><div class="hp-bar-container w-12 mt-1"><div id="hp-player-2" class="hp-fill hp-fill-player"></div></div></div>
             </div>
 
-            <div id="teamPicker" class="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto bg-slate-900/50 p-2 rounded-xl"></div>
+            <div id="playerBench" class="bench-side"></div>
+        </div>
+
+        <div class="w-full max-w-sm space-y-4 mb-4">
+            <div id="battleMsg" class="bg-slate-900/80 p-3 rounded-xl border border-white/10 text-[9px] italic text-slate-300 text-center">Siege Mode: HP is saved!</div>
+            
+            <div id="teamPicker" class="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto bg-slate-900/50 p-2 rounded-xl border border-blue-500/20"></div>
             
             <div id="battleMoves" class="hidden grid grid-cols-2 gap-2">
                 <button onclick="executeMove('basic')" class="bg-slate-800 p-3 text-[8px] pixel-font rounded uppercase">Basic</button>
                 <button onclick="executeMove('elemental')" class="bg-blue-900/50 p-3 text-[8px] pixel-font rounded uppercase border border-blue-500/50">Elemental</button>
                 <button onclick="executeMove('burst')" class="col-span-2 bg-purple-900/40 p-3 text-[8px] pixel-font rounded border border-purple-500 uppercase">Burst Attack</button>
                 <div class="col-span-2 mt-2 px-1 text-center">
-                    <p class="pixel-font text-[6px] text-yellow-500 mb-1">UNLIMITED ENERGY STORED</p>
-                    <div class="hp-bar-container h-4"><div id="battleBEMeter" class="be-meter"></div></div>
+                    <p class="pixel-font text-[6px] text-yellow-500 mb-1">UNLIMITED ENERGY</p>
+                    <div class="hp-bar-container h-3"><div id="battleBEMeter" class="be-meter"></div></div>
                 </div>
             </div>
             
-            <button onclick="toggleBattleScreen(false)" class="block mx-auto text-[7px] pixel-font text-slate-600 uppercase tracking-tighter">Withdraw</button>
+            <button onclick="toggleBattleScreen(false)" class="block mx-auto text-[7px] pixel-font text-slate-600 uppercase">Withdraw</button>
         </div>
     </div>
 
@@ -191,11 +192,13 @@
             <h2 class="pixel-font text-[10px] text-purple-400 uppercase border-b border-purple-500/30 pb-2">App Guide</h2>
             <div class="text-xs text-slate-400 space-y-4 leading-relaxed">
                 <p><strong>The Purpose:</strong> This app turns your to-do lists into a focused adventure.</p>
-                <p><strong>Siege Style Battles:</strong> Gym Leaders are tough! If you withdraw or white out, the Leader's Pokémon **keep their current HP**. You can chip away at them over multiple battles.</p>
-                <p><strong>Unlimited Energy:</strong> There is no cap on Battle Energy (BE). Hoard as much as you need for the big boss fights!</p>
-                <p><strong>Roster Snapshot:</strong> Use Pokémon caught at or before the gym's level milestone.</p>
+                <p><strong>Gym Battles:</strong> Every 3 levels, engage in a 3v3 battle. Win to earn Badges and permanent buffs.</p>
+                <p><strong>Siege Style:</strong> Boss Pokémon retain their HP if you withdraw or lose. Keep chipping away!</p>
+                <p><strong>Unlimited Energy:</strong> There is no cap on BE. Stash energy for major battles.</p>
+                <p><strong>Roster Snapshot:</strong> You may only use Pokémon caught at or before the gym's required level.</p>
+                <p><strong>Master Ball:</strong> Earn charges by finishing tasks. Use them to catch legendary Pokémon for your milestones.</p>
             </div>
-            <button onclick="toggleManual()" class="pixel-font text-[7px] text-center block w-full text-purple-500 uppercase mt-4">Close Guide</button>
+            <button onclick="toggleManual()" class="pixel-font text-[7px] text-center block w-full text-purple-500 uppercase mt-4">Close</button>
         </div>
 
         <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-8 shadow-xl">
@@ -243,21 +246,21 @@
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="wipe()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 uppercase mb-4">Wipe Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">v13.1.5 Siege Master</p>
-            <p class="text-[7px] pixel-font text-slate-800 uppercase mt-2">DC Aligaya</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">v13.1.6 Siege Revamp</p>
+            <p class="text-[7px] pixel-font text-slate-800 uppercase mt-2">Created by: DC Aligaya</p>
         </div>
     </div>
 
     <script>
         const GYMS = [
-            { l: 3, leader: "Brock", badge: "Boulder", type: "rock", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/1.png", squad: [{id:74, n:"GEODUDE"}, {id:111, n:"RHYHORN"}, {id:95, n:"ONIX"}] },
-            { l: 6, leader: "Misty", badge: "Cascade", type: "water", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/2.png", squad: [{id:120, n:"STARYU"}, {id:117, n:"SEADRA"}, {id:121, n:"STARMIE"}] },
-            { l: 9, leader: "Lt. Surge", badge: "Thunder", type: "electric", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/3.png", squad: [{id:100, n:"VOLTORB"}, {id:25, n:"PIKACHU"}, {id:26, n:"RAICHU"}] },
-            { l: 12, leader: "Erika", badge: "Rainbow", type: "grass", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/4.png", squad: [{id:71, n:"VICTREEBEL"}, {id:114, n:"TANGELA"}, {id:45, n:"VILEPLUME"}] },
-            { l: 15, leader: "Koga", badge: "Soul", type: "poison", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/5.png", squad: [{id:49, n:"VENOMOTH"}, {id:89, n:"MUK"}, {id:110, n:"WEEZING"}] },
-            { l: 18, leader: "Sabrina", badge: "Marsh", type: "psychic", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/6.png", squad: [{id:64, n:"KADABRA"}, {id:122, n:"MR. MIME"}, {id:65, n:"ALAKAZAM"}] },
-            { l: 21, leader: "Blaine", badge: "Volcano", type: "fire", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/7.png", squad: [{id:58, n:"GROWLITHE"}, {id:77, n:"PONYTA"}, {id:59, n:"ARCANINE"}] },
-            { l: 24, leader: "Giovanni", badge: "Earth", type: "ground", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/8.png", squad: [{id:34, n:"NIDOKING"}, {id:31, n:"NIDOQUEEN"}, {id:112, n:"RHYDON"}] }
+            { l: 3, leader: "Brock", badge: "Boulder", type: "rock", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/15.png", squad: [{id:74, n:"GEODUDE"}, {id:111, n:"RHYHORN"}, {id:95, n:"ONIX"}] },
+            { l: 6, leader: "Misty", badge: "Cascade", type: "water", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/16.png", squad: [{id:120, n:"STARYU"}, {id:117, n:"SEADRA"}, {id:121, n:"STARMIE"}] },
+            { l: 9, leader: "Lt. Surge", badge: "Thunder", type: "electric", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/17.png", squad: [{id:100, n:"VOLTORB"}, {id:25, n:"PIKACHU"}, {id:26, n:"RAICHU"}] },
+            { l: 12, leader: "Erika", badge: "Rainbow", type: "grass", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/18.png", squad: [{id:71, n:"VICTREEBEL"}, {id:114, n:"TANGELA"}, {id:45, n:"VILEPLUME"}] },
+            { l: 15, leader: "Koga", badge: "Soul", type: "poison", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/19.png", squad: [{id:49, n:"VENOMOTH"}, {id:89, n:"MUK"}, {id:110, n:"WEEZING"}] },
+            { l: 18, leader: "Sabrina", badge: "Marsh", type: "psychic", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/20.png", squad: [{id:64, n:"KADABRA"}, {id:122, n:"MR. MIME"}, {id:65, n:"ALAKAZAM"}] },
+            { l: 21, leader: "Blaine", badge: "Volcano", type: "fire", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/21.png", squad: [{id:58, n:"GROWLITHE"}, {id:77, n:"PONYTA"}, {id:59, n:"ARCANINE"}] },
+            { l: 24, leader: "Giovanni", badge: "Earth", type: "ground", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/22.png", squad: [{id:34, n:"NIDOKING"}, {id:31, n:"NIDOQUEEN"}, {id:112, n:"RHYDON"}] }
         ];
 
         const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
@@ -276,7 +279,7 @@
         let collapsedArcs = JSON.parse(localStorage.getItem('m_coll_arcs')) || [];
         let dexCollapsed = JSON.parse(localStorage.getItem('m_dex_coll')) || false;
         let doneCollapsed = JSON.parse(localStorage.getItem('m_done_coll')) || false;
-        let gymHP = JSON.parse(localStorage.getItem('m_gym_hp')) || null; 
+        let gymHP = JSON.parse(localStorage.getItem('m_gym_hp')) || null;
 
         let editingId = null; let expandedId = null; let dexExpId = null;
         let pTeam = []; let bTeam = []; let pActive = 0; let bActive = 0;
@@ -308,7 +311,8 @@
                 });
                 i.value = ''; save();
             } catch (e) {
-                tasks.push({ id: Date.now(), text: i.value.trim(), category: c, done: false, mb: false, pokeID: id, name: "POKEMON", type: "normal", lvl: getLvl(), desc: "A wild Kanto encounter." });
+                // SILENT FALLBACK
+                tasks.push({ id: Date.now(), text: i.value.trim(), category: c, done: false, mb: false, pokeID: id, name: "WILD POKEMON", type: "normal", lvl: getLvl(), desc: "A wild encounter in the Kanto region." });
                 i.value = ''; save();
             }
         }
@@ -339,21 +343,14 @@
             document.getElementById('leaderImg').src = g.img;
             document.getElementById('teamPicker').classList.remove('hidden');
             document.getElementById('battleMoves').classList.add('hidden');
-            
-            // SIEGE STYLE: LOAD PERSISTENT HP
-            if (!gymHP || gymHP.badge !== g.badge) {
-                bTeam = g.squad.map(p => ({ ...p, hp: 100 }));
-            } else {
-                bTeam = gymHP.squad;
-            }
+            if (!gymHP || gymHP.badge !== g.badge) { bTeam = g.squad.map(p => ({ ...p, hp: 100 })); } else { bTeam = gymHP.squad; }
             pTeam = []; bActive = bTeam.findIndex(p => p.hp > 0); pActive = 0;
-
             const p = document.getElementById('teamPicker'); p.innerHTML = '';
             const eligible = dex.filter(x => x.lvl <= g.l);
-            eligible.forEach(x => {
+            eligible.forEach((x, idx) => {
                 const card = document.createElement('img');
                 card.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${x.pokeID}.png`;
-                card.className = "w-10 h-10 pixelated border border-slate-700 rounded cursor-pointer";
+                card.className = "w-10 h-10 pixelated border border-slate-700 rounded cursor-pointer hover:border-green-500 transition-all";
                 card.onclick = () => pickTeam(x);
                 p.appendChild(card);
             });
@@ -374,13 +371,14 @@
             const ba = bTeam[bActive]; const pa = pTeam[pActive];
             if(ba) { document.getElementById('sprite-boss-active').src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${ba.id}.png`; document.getElementById('hp-boss-active').style.width = ba.hp + '%'; document.getElementById('bossActiveName').innerText = ba.n; }
             if(pa) { document.getElementById('sprite-player-active').src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pa.pokeID}.png`; document.getElementById('hp-player-active').style.width = pa.hp + '%'; document.getElementById('playerActiveName').innerText = pa.name; }
-            [0, 2].forEach(i => {
-                const bp = bTeam[i]; const pp = pTeam[i];
-                document.getElementById(`sprite-boss-${i}`).src = bp ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${bp.id}.png` : '';
-                document.getElementById(`sprite-player-${i}`).src = pp ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pp.pokeID}.png` : '';
-                document.getElementById(`hp-boss-${i}`).style.width = (bp ? bp.hp : 0) + '%';
-                document.getElementById(`hp-player-${i}`).style.width = (pp ? pp.hp : 0) + '%';
-            });
+            
+            // SIDE BENCH REVAMP
+            const bBench = document.getElementById('bossBench'); bBench.innerHTML = '';
+            bTeam.forEach((p, idx) => { if(idx !== bActive) bBench.innerHTML += `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" class="w-8 h-8 pixelated ${p.hp <= 0 ? 'grayscale opacity-30' : ''}">`; });
+            
+            const pBench = document.getElementById('playerBench'); pBench.innerHTML = '';
+            pTeam.forEach((p, idx) => { if(idx !== pActive) pBench.innerHTML += `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokeID}.png" class="w-8 h-8 pixelated ${p.hp <= 0 ? 'grayscale opacity-30' : ''}">`; });
+            
             document.getElementById('battleBEMeter').style.width = Math.min(100, be) + '%';
         }
 
@@ -405,10 +403,9 @@
 
         function checkEnd() {
             const g = GYMS.find(g => !badges.includes(g.badge));
-            // SAVE CURRENT HP REGARDLESS OF WIN/LOSS
             gymHP = { badge: g.badge, squad: bTeam }; localStorage.setItem('m_gym_hp', JSON.stringify(gymHP));
             if (bActive >= 3) { alert(`Victory! Earned ${g.badge} Badge!`); badges.push(g.badge); gymHP = null; localStorage.removeItem('m_gym_hp'); toggleBattleScreen(false); save(); }
-            else if (pActive >= 3) { alert("Whited Out!"); whitedOut = true; toggleBattleScreen(false); render(); }
+            else if (pActive >= 3) { alert("Your team whited out!"); whitedOut = true; toggleBattleScreen(false); render(); }
         }
 
         function save() {
@@ -465,12 +462,12 @@
             document.getElementById('stat-charges').innerText = charges;
             let dots = ""; for(let i=0; i < (badges.includes("Thunder") ? 4 : 5); i++) dots += `<div class="w-1.5 h-1.5 rounded-full ${i < battery ? 'bg-purple-500' : 'bg-slate-800'}"></div>`;
             document.getElementById('charge-dots').innerHTML = dots;
-            document.getElementById('badge-container').innerHTML = badges.map(b => `<span class="text-xs">🏆</span>`).join('');
+            document.getElementById('badge-container').innerHTML = badges.map(b => `<span class="text-xs" title="${b} Badge active">🏆</span>`).join('');
             document.getElementById('pendingCount').innerText = tasks.filter(t => !t.done).length + " ONGOING";
         }
 
         function toggleBattleScreen(v) { 
-            if (!v && bTeam.length > 0) { // ON WITHDRAW, SAVE HP
+            if (!v && bTeam.length > 0) { 
                 const g = GYMS.find(g => !badges.includes(g.badge));
                 gymHP = { badge: g.badge, squad: bTeam }; localStorage.setItem('m_gym_hp', JSON.stringify(gymHP));
             }
@@ -493,8 +490,13 @@
                 const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${lid}`); const d = await r.json();
                 const sr = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${lid}`); const sd = await sr.json();
                 q.mb = true; q.pokeID = lid; q.name = d.name.toUpperCase();
-                q.desc = sd.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/[\f\n\r]/g, ' '); charges--; save();
-            } catch (e) { alert("API Error."); }
+                q.desc = sd.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/[\f\n\r]/g, ' '); 
+                charges--; save();
+            } catch (e) {
+                // SILENT FALLBACK FOR MASTER BALL
+                q.mb = true; q.pokeID = lid; q.name = "LEGENDARY"; q.desc = "A rare and powerful Pokémon milestone.";
+                charges--; save();
+            }
         }
         function toggleArc(n) { if(collapsedArcs.includes(n)) collapsedArcs = collapsedArcs.filter(x => x !== n); else collapsedArcs.push(n); localStorage.setItem('m_coll_arcs', JSON.stringify(collapsedArcs)); render(); }
         function toggleDex() { dexCollapsed = !dexCollapsed; localStorage.setItem('m_dex_coll', dexCollapsed); render(); }

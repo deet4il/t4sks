@@ -14,6 +14,31 @@
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/188/188918.png">
 
     <script>
+        // --- DATA RECOVERY MIGRATION (v13.1.2) ---
+       (function migrateData() {
+          const migrations = [
+              { old: 'gwapo_tasks_v6', new: 'm_tasks' },
+              { old: 'gwapo_dex_v4', new: 'm_dex' },
+              { old: 'gwapo_xp_v2', new: 'm_xp' },
+              { old: 'gwapo_be_v2', new: 'm_be' },
+              { old: 'gwapo_badges_v2', new: 'm_badges' },
+              { old: 'gwapo_charges_v2', new: 'm_charges' },
+              { old: 'gwapo_battery_v2', new: 'm_battery' },
+              { old: 'gwapo_categories_v2', new: 'm_arcs' }
+          ];
+
+          migrations.forEach(m => {
+              const oldData = localStorage.getItem(m.old);
+              const newData = localStorage.getItem(m.new);
+        
+              // If old data exists and new data is empty/default, migrate it!
+              if (oldData && (!newData || newData === '[]' || newData === '0' || newData === 'null')) {
+                  localStorage.setItem(m.new, oldData);
+                  console.log(`Successfully restored ${m.old} to ${m.new}`);
+        }
+    });
+})();
+// ------------------------------------------
         let newWorker;
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => {

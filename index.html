@@ -56,7 +56,6 @@
         .task-text { cursor: pointer; transition: max-height 0.3s ease; }
         .task-text.expanded { white-space: normal; word-break: break-word; }
         
-        /* ACTION PILLAR STYLING */
         .action-pillar { min-width: 36px; border-left: 1px solid rgba(255,255,255,0.05); }
         .daily-arc-header { border-left: 4px solid #60a5fa; }
     </style>
@@ -181,13 +180,12 @@
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase mb-4">Wipe Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v12.9</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v12.9.1</p>
             <p class="text-[7px] pixel-font text-slate-700 uppercase mt-2">Created by: DC Aligaya</p>
         </div>
     </div>
 
     <script>
-        // --- UI TOGGLES & ICONS ---
         function toggleManual() { const m = document.getElementById('appManual'); if(m) m.classList.toggle('hidden'); }
         function toggleTaskExpand(id) { expandedTaskId = (expandedTaskId === id) ? null : id; render(); }
         let expandedDexId = null;
@@ -198,11 +196,8 @@
         const TRASH_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
         const LEGENDARIES = [144, 145, 146, 150, 151];
 
-        // --- STATE & INITIALIZATION ---
-        // Categories migration to object array: [{name: string, isDaily: boolean}]
         let rawCategories = JSON.parse(localStorage.getItem('gwapo_categories_v2')) || [];
         let categories = rawCategories.map(c => typeof c === 'string' ? {name: c, isDaily: false} : c);
-        
         let charges = JSON.parse(localStorage.getItem('gwapo_m_charges')) || 0;
         let battery = JSON.parse(localStorage.getItem('gwapo_m_battery')) || 0;
         let quests = JSON.parse(localStorage.getItem('gwapo_tasks_v6')) || [];
@@ -233,7 +228,6 @@
             const btn = document.getElementById('addButton');
             if (categories.length === 0) { alert("Create an Arc first!"); manageMissions(); return; }
             if (!input.value.trim()) return;
-            
             btn.innerText = "..."; btn.disabled = true;
             const pokeID = Math.floor(Math.random() * 151) + 1;
             try {
@@ -242,7 +236,6 @@
                 const specRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokeID}`);
                 const specData = await specRes.json();
                 const flavor = specData.flavor_text_entries.find(e => e.language.name === 'en');
-                
                 quests.push({
                     id: Date.now(),
                     text: input.value.trim(),
@@ -285,12 +278,19 @@
             q.completed = !q.completed;
             if (q.completed) {
                 q.lastCompletedDate = today;
-                // SHINY RATE 1:10
                 const isShiny = Math.floor(Math.random() * 10) === 0;
                 if (q.isMasterBall) { charges--; totalXP += 150; } 
                 else { totalXP += 50; battery++; if (battery >= 5) { charges++; battery = 0; } }
+                
+                // FIXED: Safety fallback for legacy description
                 if (!dex.find(p => p.taskID === q.id)) {
-                    dex.push({ taskID: q.id, pokeID: q.pokeID, pokeName: q.pokeName, isShiny: isShiny, description: q.description });
+                    dex.push({ 
+                        taskID: q.id, 
+                        pokeID: q.pokeID, 
+                        pokeName: q.pokeName, 
+                        isShiny: isShiny, 
+                        description: q.description || "A mysterious Pokémon from the Kanto region." 
+                    });
                 }
             } else { 
                 dex = dex.filter(p => p.taskID !== q.id);
@@ -349,7 +349,6 @@
             categories.forEach(cat => { catSelect.innerHTML += `<option value="${cat.name}" ${cat.name === currentSelected ? 'selected' : ''}>${cat.name}</option>`; });
             storyContainer.innerHTML = ''; collectionGrid.innerHTML = ''; doneList.innerHTML = '';
 
-            // --- RENDER ARCS ---
             categories.forEach(cat => {
                 const activeInCat = quests.filter(q => q.category === cat.name && !q.completed).sort((a,b) => b.isMasterBall - a.isMasterBall);
                 const isCollapsed = collapsedArcs.includes(cat.name);
@@ -387,12 +386,12 @@
                 }
             });
 
-            // --- POXEDEX JOURNAL ---
             const uniqueDex = [];
             dex.forEach(p => { if (!uniqueDex.find(u => u.pokeID === p.pokeID && u.isShiny === p.isShiny)) uniqueDex.push(p); });
             uniqueDex.forEach(p => {
                 const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.isShiny ? 'shiny/' : ''}${p.pokeID}.png`;
                 const isExpanded = expandedDexId === (p.pokeID + (p.isShiny ? '_s' : ''));
+                // FIXED: Inline fallback for undefined description
                 collectionGrid.innerHTML += `
                     <div class="dex-card p-3 flex flex-col gap-2 ${p.isShiny ? 'shiny-card' : ''}" onclick="toggleDexExpand('${p.pokeID}${p.isShiny ? '_s' : ''}')">
                         <div class="flex items-center gap-4">
@@ -400,7 +399,7 @@
                             <p class="text-[8px] pixel-font text-green-400 uppercase">${p.pokeName}${p.isShiny ? ' ✨' : ''}</p>
                         </div>
                         <div class="${isExpanded ? 'block' : 'hidden'} mt-2 p-2 bg-black/40 rounded-lg border-t border-green-500/20">
-                            <p class="text-[10px] italic text-slate-300 leading-relaxed">${p.description}</p>
+                            <p class="text-[10px] italic text-slate-300 leading-relaxed">${p.description || 'A mysterious Pokémon from the Kanto region.'}</p>
                         </div>
                     </div>`;
             });
@@ -415,7 +414,6 @@
                 </div>`;
             });
 
-            // --- HEADER UPDATES ---
             const currentLvl = Math.floor(totalXP / 500) + 1;
             const progress = totalXP % 500;
             document.getElementById('lvl-text').innerText = `LVL ${currentLvl}`;
@@ -446,7 +444,7 @@
                 i.value=''; d.checked=false; saveCategories(); 
             } 
         }
-        function removeCategory(c) { if(confirm("Delete this Arc?")){ categories = categories.filter(x=>x.name!==c); saveCategories(); } }
+        function removeCategory(c) { if(confirm("Delete this Arc?")){ categories = categories.filter(x.name!==c); saveCategories(); } }
         function saveCategories() { localStorage.setItem('gwapo_categories_v2', JSON.stringify(categories)); render(); }
         function clearAll() { if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); } }
         

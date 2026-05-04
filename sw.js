@@ -1,4 +1,4 @@
-const VERSION = 'v11.1'; // Increment this when you release new code
+const VERSION = 'v12.0'; // Increment this when you release new code
 
 self.addEventListener('install', (event) => {
     // Install the new version in the background

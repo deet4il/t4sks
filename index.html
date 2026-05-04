@@ -141,12 +141,12 @@
 
         <div class="mt-8 text-center">
             <h2 class="pixel-font text-[9px] mb-4 text-slate-500 tracking-widest uppercase">Mission Report</h2>
-            <div id="doneList" class="space-y-2 opacity-60"></div>
+            <div id="doneList" class="space-y-2 opacity-80"></div>
         </div>
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase mb-4">Wipe Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">Master Ball OS v12.1</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">Master Ball OS v12.2</p>
             <p class="text-[7px] pixel-font text-slate-700 uppercase mt-2">Created by: DC Aligaya</p>
         </div>
     </div>
@@ -156,12 +156,11 @@
         const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
         const LEGENDARIES = [144, 145, 146, 150, 151];
 
-        // --- STATE ---
+        // --- STATE & INITIALIZATION ---
         let charges = JSON.parse(localStorage.getItem('gwapo_m_charges')) || 0;
         let battery = JSON.parse(localStorage.getItem('gwapo_m_battery')) || 0;
         let categories = JSON.parse(localStorage.getItem('gwapo_categories_v2')) || [];
         
-        // MIGRATION / INITIALIZATION
         let oldQuests = JSON.parse(localStorage.getItem('gwapo_tasks_v5')) || [];
         let quests = JSON.parse(localStorage.getItem('gwapo_tasks_v6'));
         if (!quests && oldQuests.length > 0) {
@@ -187,8 +186,7 @@
             if (!input.value.trim()) return;
             btn.innerText = "..."; btn.disabled = true;
             
-            const pokeID = Math.floor(Math.random() * 151) + 1; // Kanto Only pool
-            
+            const pokeID = Math.floor(Math.random() * 151) + 1; // Kanto Pool
             try {
                 const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeID}`);
                 const data = await response.json();
@@ -226,14 +224,36 @@
             const q = quests.find(i => i.id === id);
             const oldLvl = Math.floor(totalXP / 500);
             q.completed = !q.completed;
+            
             if (q.completed) {
-                const isShiny = Math.floor(Math.random() * 40) === 0;
-                if (q.isMasterBall) { charges--; totalXP += 150; } 
-                else { totalXP += 50; battery++; if (battery >= 5) { charges++; battery = 0; } }
+                // Task Completed
+                const isShiny = Math.floor(Math.random() * 40) === 0; // 1/40 Shiny
+                if (q.isMasterBall) { 
+                    charges--; 
+                    totalXP += 150; 
+                } else { 
+                    totalXP += 50; 
+                    battery++; 
+                    if (battery >= 5) { charges++; battery = 0; } 
+                }
                 if (!dex.find(p => p.pokeID === q.pokeID && p.isShiny === isShiny)) {
                     dex.push({ pokeID: q.pokeID, pokeName: q.pokeName, isShiny: isShiny });
                 }
-            } else { totalXP = Math.max(0, totalXP - (q.isMasterBall ? 150 : 50)); }
+            } else { 
+                // Task Undone
+                if (q.isMasterBall) {
+                    charges++; 
+                    totalXP = Math.max(0, totalXP - 150);
+                } else {
+                    totalXP = Math.max(0, totalXP - 50);
+                    if (battery > 0) {
+                        battery--; 
+                    } else if (charges > 0) {
+                        charges--;
+                        battery = 4;
+                    }
+                }
+            }
             if (Math.floor(totalXP / 500) > oldLvl) triggerLvl();
             save();
         }
@@ -329,8 +349,13 @@
                 }
             });
 
+            // MISSION REPORT WITH UNDO
             quests.filter(q => q.completed).forEach(q => {
-                doneList.innerHTML += `<div class="p-2 text-xs opacity-50">${q.text} (${catAbbreviation(q.category)})</div>`;
+                doneList.innerHTML += `
+                    <div class="flex items-center justify-between p-2 bg-slate-900/30 rounded-lg border border-slate-800 text-left mb-2">
+                        <p class="text-xs line-through text-slate-500 truncate flex-grow">${q.text} (${catAbbreviation(q.category)})</p>
+                        <button onclick="toggleQuest(${q.id})" class="text-[10px] text-purple-400 font-bold px-2 hover:text-white transition-colors">UNDO</button>
+                    </div>`;
             });
 
             dex.forEach(p => {
@@ -347,11 +372,14 @@
             document.getElementById('rank-text').innerText = getRank(currentLvl);
             document.getElementById('stat-dex').innerText = dex.length;
             document.getElementById('stat-charges').innerText = charges;
+            
             let dots = ""; for(let i=0; i<5; i++) dots += `<div class="w-1.5 h-1.5 rounded-full ${i < battery ? 'bg-purple-500' : 'bg-slate-800'}"></div>`;
             document.getElementById('charge-dots').innerHTML = dots;
+
             let badges = ""; const numBadges = Math.floor((currentLvl - 1) / 5); const badgeIcons = ['🌑','🌊','⚡','🌈','🍀','💖','🌋','❄️'];
             for(let i=0; i < Math.min(numBadges, 8); i++) badges += `<span class="text-xs">${badgeIcons[i]}</span>`;
             document.getElementById('badge-container').innerHTML = badges;
+
             const completedCount = quests.filter(q => q.completed).length;
             document.getElementById('stat-percent').innerText = quests.length > 0 ? Math.round((completedCount/quests.length)*100) + '%' : '0%';
             document.getElementById('pendingCount').innerText = (quests.length - completedCount) + " ONGOING";

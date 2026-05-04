@@ -1,4 +1,4 @@
-const VERSION = 'v13.1.2';
+const VERSION = 'v13.1.3';
 const CACHE_NAME = `masterball-cache-${VERSION}`;
 
 // Assets to cache for offline stability

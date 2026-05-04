@@ -56,6 +56,10 @@
         
         .chevron { transition: transform 0.3s ease; }
         .chevron.collapsed { transform: rotate(-90deg); }
+
+        /* ACCORDION TASK STYLES */
+        .task-text { cursor: pointer; transition: max-height 0.3s ease; }
+        .task-text.expanded { white-space: normal; word-break: break-word; }
     </style>
 </head>
 <body class="pb-24 text-left">
@@ -150,7 +154,7 @@
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="clearAll()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 transition uppercase mb-4">Wipe Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v12.3</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">Gotta Do 'em All v12.4</p>
             <p class="text-[7px] pixel-font text-slate-700 uppercase mt-2">Created by: DC Aligaya</p>
         </div>
     </div>
@@ -160,7 +164,7 @@
         const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
         const LEGENDARIES = [144, 145, 146, 150, 151];
 
-        // --- STATE & INITIALIZATION ---
+        // --- STATE ---
         let charges = JSON.parse(localStorage.getItem('gwapo_m_charges')) || 0;
         let battery = JSON.parse(localStorage.getItem('gwapo_m_battery')) || 0;
         let categories = JSON.parse(localStorage.getItem('gwapo_categories_v2')) || [];
@@ -169,6 +173,7 @@
         let totalXP = JSON.parse(localStorage.getItem('gwapo_xp_v2')) || 0;
         let collapsedArcs = JSON.parse(localStorage.getItem('gwapo_collapsed_arcs')) || [];
         let editingId = null;
+        let expandedTaskId = null; // New state for accordion
 
         function applyUpdate() { if (newWorker) { newWorker.postMessage({ type: 'SKIP_WAITING' }); } }
 
@@ -178,10 +183,8 @@
             const btn = document.getElementById('addButton');
             if (categories.length === 0) { alert("Create an Arc first!"); manageMissions(); return; }
             if (!input.value.trim()) return;
-            
             btn.innerText = "..."; btn.disabled = true;
-            const pokeID = Math.floor(Math.random() * 151) + 1; // Kanto Only pool
-            
+            const pokeID = Math.floor(Math.random() * 151) + 1;
             try {
                 const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeID}`);
                 if (!response.ok) throw new Error("API Offline");
@@ -194,13 +197,8 @@
                     pokeName: data.name.charAt(0).toUpperCase() + data.name.slice(1),
                     completed: false, isMasterBall: false
                 });
-                input.value = ''; 
-                save(); // UI Update happens inside save()
-            } catch (err) { 
-                alert("Error! Check connection to PokeAPI."); 
-            } finally { 
-                btn.innerText = "+"; btn.disabled = false; 
-            }
+                input.value = ''; save();
+            } catch (err) { alert("Error! Check connection to PokeAPI."); } finally { btn.innerText = "+"; btn.disabled = false; }
         }
 
         async function setMasterBall(id) {
@@ -223,7 +221,6 @@
             const q = quests.find(i => i.id === id);
             const oldLvl = Math.floor(totalXP / 500);
             q.completed = !q.completed;
-            
             if (q.completed) {
                 const isShiny = Math.floor(Math.random() * 40) === 0;
                 if (q.isMasterBall) { charges--; totalXP += 150; } 
@@ -232,12 +229,8 @@
                     dex.push({ pokeID: q.pokeID, pokeName: q.pokeName, isShiny: isShiny });
                 }
             } else { 
-                // UNDO LOGIC
                 if (q.isMasterBall) { charges++; totalXP = Math.max(0, totalXP - 150); } 
-                else { 
-                    totalXP = Math.max(0, totalXP - 50); 
-                    if (battery > 0) battery--; else if (charges > 0) { charges--; battery = 4; }
-                }
+                else { totalXP = Math.max(0, totalXP - 50); if (battery > 0) battery--; else if (charges > 0) { charges--; battery = 4; } }
             }
             if (Math.floor(totalXP / 500) > oldLvl) triggerLvl();
             save();
@@ -253,6 +246,12 @@
             if (collapsedArcs.includes(cat)) collapsedArcs = collapsedArcs.filter(c => c !== cat);
             else collapsedArcs.push(cat);
             localStorage.setItem('gwapo_collapsed_arcs', JSON.stringify(collapsedArcs));
+            render();
+        }
+
+        // New toggle function for accordion tasks
+        function toggleTaskExpand(id) {
+            expandedTaskId = (expandedTaskId === id) ? null : id;
             render();
         }
 
@@ -279,7 +278,6 @@
             const doneList = document.getElementById('doneList');
             if (!storyContainer || !collectionGrid || !doneList) return;
 
-            // Render Select
             const catSelect = document.getElementById('categorySelect');
             const currentSelected = catSelect.value;
             catSelect.innerHTML = '';
@@ -287,7 +285,6 @@
             
             storyContainer.innerHTML = ''; collectionGrid.innerHTML = ''; doneList.innerHTML = '';
 
-            // BULLETPROOF RENDER LOOP
             categories.forEach(cat => {
                 const activeInCat = quests.filter(q => q.category === cat && !q.completed).sort((a,b) => b.isMasterBall - a.isMasterBall);
                 const isCollapsed = collapsedArcs.includes(cat);
@@ -308,17 +305,27 @@
                     activeInCat.forEach(q => {
                         const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
                         const isEditing = editingId === q.id;
+                        const isExpanded = expandedTaskId === q.id; // Check if current task is expanded
+
                         listDiv.innerHTML += `
                             <div class="task-card p-3 rounded-xl flex items-center gap-4 ${q.isMasterBall ? 'master-priority' : ''}">
                                 <img src="${sprite}" class="w-12 h-12 pixelated brightness-0 opacity-10">
-                                <div class="flex-grow min-w-0">${isEditing ? `<input id="edit-${q.id}" type="text" value="${q.text}" class="w-full bg-black/40 border-b border-purple-500 text-sm py-1 outline-none" onkeypress="if(event.key === 'Enter') saveEdit(${q.id})" onblur="saveEdit(${q.id})">` : `<p class="text-sm font-semibold truncate text-slate-200">${q.text}</p>`}</div>
-                                <div class="flex items-center gap-1">${!isEditing ? `<button onclick="startEdit(${q.id})" class="p-1 text-slate-500 hover:text-white w-5 h-5">${EDIT_ICON}</button>` : ''}<button onclick="setMasterBall(${q.id})" class="w-6 h-6 p-1 transition-all ${q.isMasterBall ? 'text-purple-400' : 'text-slate-700 hover:text-purple-500'}">${MASTER_STAR}</button><button onclick="toggleQuest(${q.id})" class="p-2 text-green-400 text-lg font-bold">✓</button></div>
+                                <div class="flex-grow min-w-0">
+                                    ${isEditing ? 
+                                        `<input id="edit-${q.id}" type="text" value="${q.text}" class="w-full bg-black/40 border-b border-purple-500 text-sm py-1 outline-none" onkeypress="if(event.key === 'Enter') saveEdit(${q.id})" onblur="saveEdit(${q.id})">` : 
+                                        `<p onclick="toggleTaskExpand(${q.id})" class="text-sm font-semibold text-slate-200 task-text ${isExpanded ? 'expanded' : 'truncate'}">${q.text}</p>`
+                                    }
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    ${!isEditing ? `<button onclick="startEdit(${q.id})" class="p-1 text-slate-500 hover:text-white w-5 h-5">${EDIT_ICON}</button>` : ''}
+                                    <button onclick="setMasterBall(${q.id})" class="w-6 h-6 p-1 transition-all ${q.isMasterBall ? 'text-purple-400' : 'text-slate-700 hover:text-purple-500'}">${MASTER_STAR}</button>
+                                    <button onclick="toggleQuest(${q.id})" class="p-2 text-green-400 text-lg font-bold">✓</button>
+                                </div>
                             </div>`;
                     });
                 }
             });
 
-            // COMPLETED LOGIC
             quests.filter(q => q.completed).forEach(q => {
                 doneList.innerHTML += `<div class="flex items-center justify-between p-2 bg-slate-900/30 rounded-lg border border-slate-800 mb-2"><p class="text-xs line-through text-slate-500 truncate flex-grow">${q.text}</p><button onclick="toggleQuest(${q.id})" class="text-[10px] text-purple-400 font-bold px-2">UNDO</button></div>`;
             });
@@ -328,7 +335,6 @@
                 collectionGrid.innerHTML += `<div class="dex-card p-2 text-center ${p.isShiny ? 'shiny-card' : ''}"><img src="${sprite}" class="w-full pixelated mx-auto"><p class="text-[6px] pixel-font text-green-400 mt-2">${p.pokeName}${p.isShiny ? ' ✨' : ''}</p></div>`;
             });
 
-            // HEADER UPDATES
             const currentLvl = Math.floor(totalXP / 500) + 1;
             const progress = totalXP % 500;
             document.getElementById('lvl-text').innerText = `LVL ${currentLvl}`;
@@ -337,15 +343,11 @@
             document.getElementById('rank-text').innerText = getRank(currentLvl);
             document.getElementById('stat-dex').innerText = dex.length;
             document.getElementById('stat-charges').innerText = charges;
-            
             let dots = ""; for(let i=0; i<5; i++) dots += `<div class="w-1.5 h-1.5 rounded-full ${i < battery ? 'bg-purple-500' : 'bg-slate-800'}"></div>`;
             document.getElementById('charge-dots').innerHTML = dots;
-
-            const badgeIcons = ['🌑','🌊','⚡','🌈','🍀','💖','🌋','❄️'];
-            let badges = ""; for(let i=0; i < Math.min(Math.floor((currentLvl - 1) / 5), 8); i++) badges += `<span class="text-xs">${badgeIcons[i]}</span>`;
+            let badges = ""; for(let i=0; i < Math.min(Math.floor((currentLvl - 1) / 5), 8); i++) badges += `<span class="text-xs">${['🌑','🌊','⚡','🌈','🍀','💖','🌋','❄️'][i]}</span>`;
             document.getElementById('badge-container').innerHTML = badges;
 
-            // FIX: Ensure stat-percent exists before updating
             const compEl = document.getElementById('stat-percent');
             if (compEl) {
                 const comp = quests.filter(q => q.completed).length;

@@ -14,7 +14,7 @@
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/188/188918.png">
 
     <script>
-        // --- DATA RECOVERY MIGRATION (v13.1.2) ---
+        // --- DATA RECOVERY MIGRATION (v13.1.3) ---
         (function migrateData() {
             const migrations = [
                 { old: 'gwapo_tasks_v6', new: 'm_tasks' },
@@ -26,12 +26,32 @@
                 { old: 'gwapo_battery_v2', new: 'm_battery' },
                 { old: 'gwapo_categories_v2', new: 'm_arcs' }
             ];
+
             migrations.forEach(m => {
-                const oldData = localStorage.getItem(m.old);
-                const newData = localStorage.getItem(m.new);
+                let oldData = localStorage.getItem(m.old);
+                let newData = localStorage.getItem(m.new);
+                
                 if (oldData && (!newData || newData === '[]' || newData === '0' || newData === 'null')) {
-                    localStorage.setItem(m.new, oldData);
-                    console.log(`Successfully restored ${m.old} to ${m.new}`);
+                    let parsed = JSON.parse(oldData);
+                    if (m.new === 'm_tasks' && Array.isArray(parsed)) {
+                        parsed = parsed.map(t => ({
+                            ...t,
+                            done: t.done !== undefined ? t.done : t.completed,
+                            mb: t.mb !== undefined ? t.mb : t.isMasterBall,
+                            desc: t.desc || t.description || "Kanto Pokemon",
+                            name: t.pokeName || t.name
+                        }));
+                    }
+                    if (m.new === 'm_dex' && Array.isArray(parsed)) {
+                        parsed = parsed.map(p => ({
+                            ...p,
+                            name: p.name || p.pokeName,
+                            desc: p.desc || p.description || "A mysterious Pokémon.",
+                            shiny: p.shiny !== undefined ? p.shiny : p.isShiny,
+                            tID: p.tID || p.taskID
+                        }));
+                    }
+                    localStorage.setItem(m.new, JSON.stringify(parsed));
                 }
             });
         })();
@@ -81,24 +101,30 @@
     <div id="battleScreen" class="hidden fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm space-y-6">
             <h2 id="gymTitle" class="pixel-font text-blue-400 text-[10px] text-center uppercase"></h2>
+            
             <div id="bossSquad" class="flex gap-4 justify-center">
                 <div class="flex flex-col items-center"><div class="hp-bar-container w-12 mb-1"><div id="hp-boss-0" class="hp-fill"></div></div><img id="sprite-boss-0" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
                 <div class="flex flex-col items-center scale-125"><div class="hp-bar-container w-20 mb-1"><div id="hp-boss-active" class="hp-fill"></div></div><img id="sprite-boss-active" class="w-24 h-24 pixelated animate-bounce"></div>
                 <div class="flex flex-col items-center"><div class="hp-bar-container w-12 mb-1"><div id="hp-boss-2" class="hp-fill"></div></div><img id="sprite-boss-2" class="w-12 h-12 pixelated opacity-30 grayscale"></div>
             </div>
+
             <div id="battleMsg" class="bg-slate-900 p-3 rounded-xl border border-white/10 text-[10px] italic text-slate-300 text-center">Prepare for battle!</div>
+
             <div id="playerSquad" class="flex gap-4 justify-center">
                 <div class="flex flex-col items-center"><img id="sprite-player-0" class="w-12 h-12 pixelated opacity-30 grayscale"><div class="hp-bar-container w-12 mt-1"><div id="hp-player-0" class="hp-fill hp-fill-player"></div></div></div>
                 <div class="flex flex-col items-center scale-125"><img id="sprite-player-active" class="w-24 h-24 pixelated"><div class="hp-bar-container w-20 mt-1"><div id="hp-player-active" class="hp-fill hp-fill-player"></div></div></div>
                 <div class="flex flex-col items-center"><img id="sprite-player-2" class="w-12 h-12 pixelated opacity-30 grayscale"><div class="hp-bar-container w-12 mt-1"><div id="hp-player-2" class="hp-fill hp-fill-player"></div></div></div>
             </div>
+
             <div id="teamPicker" class="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto bg-slate-900/50 p-2 rounded-xl"></div>
+            
             <div id="battleMoves" class="hidden grid grid-cols-2 gap-2">
                 <button onclick="executeMove('basic')" class="bg-slate-800 p-3 text-[8px] pixel-font rounded uppercase">Basic</button>
                 <button onclick="executeMove('elemental')" class="bg-blue-900/50 p-3 text-[8px] pixel-font rounded uppercase border border-blue-500/50">Elemental</button>
                 <button onclick="executeMove('burst')" class="col-span-2 bg-purple-900/40 p-3 text-[8px] pixel-font rounded border border-purple-500 uppercase">Burst Attack</button>
                 <div class="col-span-2 mt-2 px-1"><div class="hp-bar-container h-4"><div id="battleBEMeter" class="be-meter"></div></div></div>
             </div>
+            
             <button onclick="toggleBattleScreen(false)" class="block mx-auto text-[7px] pixel-font text-slate-600 uppercase">Withdraw</button>
         </div>
     </div>
@@ -113,6 +139,7 @@
         <p id="rank-text" class="pixel-font text-[7px] text-purple-300 mb-4 uppercase">Novice Trainer</p>
         <div id="badge-container" class="flex justify-center gap-2 mb-4"></div>
         <button onclick="toggleManual()" class="pixel-font text-[7px] text-purple-300 border border-purple-500/50 px-2 py-1 rounded uppercase">App Guide</button>
+
         <div class="max-w-xs mx-auto px-4 mt-6">
             <div class="flex justify-between items-end mb-1">
                 <span id="lvl-text" class="pixel-font text-[9px] text-green-400">LVL 1</span>
@@ -120,6 +147,7 @@
             </div>
             <div class="xp-bar-container"><div id="xp-fill"></div></div>
         </div>
+
         <div class="flex justify-center gap-6 mt-6">
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DEX</p><p id="stat-dex" class="text-lg font-black">0</p></div>
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DONE</p><p id="stat-percent" class="text-lg font-black text-green-400">0%</p></div>
@@ -200,8 +228,9 @@
 
         <div class="mt-16 pt-8 border-t border-slate-800 text-center pb-12">
             <button onclick="wipe()" class="text-[8px] pixel-font text-slate-700 hover:text-red-500 uppercase mb-4">Wipe All Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase">GOTTA DO 'EM ALL v13.1.2</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase">GOTTA DO 'EM ALL v13.1.3</p>
             <p class="text-[7px] pixel-font text-slate-800 uppercase mt-2">Created by: DC Aligaya</p>
+            <p class="text-[7px] pixel-font text-slate-800 uppercase mt-2">contact me at novembergray1992@gmail.com</p>
         </div>
     </div>
 
@@ -284,7 +313,7 @@
                 battery++; if (battery >= (badges.includes("Thunder") ? 4 : 5)) { charges++; battery = 0; }
                 if (!dex.find(p => p.tID === q.id)) {
                     const s = Math.floor(Math.random() * (badges.includes("Soul") && q.mb ? 5 : 10)) === 0;
-                    dex.push({ tID: q.id, pokeID: q.pokeID, name: q.pokeName, type: q.pokeType, shiny: s, desc: q.desc, lvl: q.lvl });
+                    dex.push({ tID: q.id, pokeID: q.pokeID, name: q.pokeName || q.name, type: q.pokeType, shiny: s, desc: q.desc, lvl: q.lvl });
                 }
             } else { dex = dex.filter(p => p.tID !== q.id); xp = Math.max(0, xp - 50); }
             save();
@@ -319,11 +348,11 @@
             const ba = bTeam[bActive]; const pa = pTeam[pActive];
             const bs = document.getElementById('sprite-boss-active'); const ps = document.getElementById('sprite-player-active');
             if(ba) { bs.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${ba.id}.png`; document.getElementById('hp-boss-active').style.width = ba.hp + '%'; }
-            if(pa) { ps.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pa.pokeID}.png`; document.getElementById('hp-player-active').style.width = pa.hp + '%'; }
+            if(pa) { ps.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pa.pokeID || pa.id}.png`; document.getElementById('hp-player-active').style.width = pa.hp + '%'; }
             [0, 2].forEach(i => {
                 const bp = bTeam[i]; const pp = pTeam[i];
                 document.getElementById(`sprite-boss-${i}`).src = bp ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${bp.id}.png` : '';
-                document.getElementById(`sprite-player-${i}`).src = pp ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pp.pokeID}.png` : '';
+                document.getElementById(`sprite-player-${i}`).src = pp ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pp.pokeID || pp.id}.png` : '';
                 document.getElementById(`hp-boss-${i}`).style.width = (bp ? bp.hp : 0) + '%';
                 document.getElementById(`hp-player-${i}`).style.width = (pp ? pp.hp : 0) + '%';
             });
@@ -403,7 +432,7 @@
             document.getElementById('xp-fill').style.width = (xp % getXPLimit() / (getXPLimit()/100)) + '%';
             document.getElementById('stat-dex').innerText = dex.length;
             document.getElementById('stat-be').innerText = be;
-            document.getElementById('badge-container').innerHTML = badges.map(b => `<span class="text-xs">🏆</span>`).join('');
+            document.getElementById('badge-container').innerHTML = badges.map(b => `<span class="text-xs" title="${b} Badge active">🏆</span>`).join('');
             document.getElementById('pendingCount').innerText = tasks.filter(t => !t.done).length + " ONGOING";
             document.getElementById('dexChev').className = `chevron w-3 h-3 text-green-500 ${dexCollapsed ? 'collapsed' : ''}`;
             document.getElementById('doneChev').className = `chevron w-3 h-3 text-slate-500 ${doneCollapsed ? 'collapsed' : ''}`;

@@ -14,7 +14,7 @@
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/188/188918.png">
 
     <script>
-        // --- DATA RECOVERY MIGRATION (v13.1.11) ---
+        // --- DATA RECOVERY MIGRATION (v13.1.12) ---
         (function migrateData() {
             const migrations = [
                 { old: 'gwapo_tasks_v6', new: 'm_tasks' },
@@ -57,7 +57,6 @@
 
         let newWorker;
         if ('serviceWorker' in navigator) {
-            // SUBFOLDER FIX: Scoped to './' ensures this SW only controls the /test/ folder
             navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
                 reg.addEventListener('updatefound', () => {
                     newWorker = reg.installing;
@@ -111,27 +110,22 @@
             <img id="leaderImg" class="leader-portrait pixelated">
             <h2 id="gymTitle" class="pixel-font text-blue-400 text-[8px] uppercase mt-2"></h2>
         </div>
-        
         <div class="w-full space-y-4">
             <div class="flex flex-col items-center">
                 <p id="bossActiveName" class="pixel-font text-[6px] text-red-400 mb-1 uppercase"></p>
                 <div class="hp-bar-container w-24 mb-1"><div id="hp-boss-active" class="hp-fill"></div></div>
                 <img id="sprite-boss-active" class="w-32 h-32 pixelated animate-bounce">
             </div>
-            
             <div class="flex flex-col items-center">
                 <img id="sprite-player-active" class="w-32 h-32 pixelated">
                 <div class="hp-bar-container w-24 mt-1"><div id="hp-player-active" class="hp-fill hp-fill-player"></div></div>
                 <p id="playerActiveName" class="pixel-font text-[6px] text-green-400 mt-1 uppercase"></p>
             </div>
         </div>
-
         <div class="w-full max-w-sm">
             <div id="playerBench" class="user-bench-row"></div>
             <div id="battleLog" class="p-2 pixel-font text-slate-400 leading-relaxed mb-4"></div>
-            
             <div id="teamPicker" class="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto bg-slate-900/50 p-2 rounded-xl border border-blue-500/20"></div>
-            
             <div id="battleMoves" class="hidden grid grid-cols-2 gap-2">
                 <button onclick="executeMove('basic')" class="bg-slate-800 p-3 text-[8px] pixel-font rounded uppercase border border-slate-700">Basic</button>
                 <button onclick="executeMove('elemental')" class="bg-blue-900/50 p-3 text-[8px] pixel-font rounded uppercase border border-blue-500/50">Elemental</button>
@@ -141,7 +135,6 @@
                     <div class="hp-bar-container h-1.5 mx-1"><div id="battleBEMeter" class="be-meter"></div></div>
                 </div>
             </div>
-            
             <button onclick="toggleBattleScreen(false)" class="block mx-auto mt-4 text-[7px] pixel-font text-slate-600 uppercase">Withdraw</button>
         </div>
     </div>
@@ -166,7 +159,7 @@
         </div>
 
         <div class="flex justify-center gap-6 mt-6">
-            <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DEX</p><p id="stat-dex" class="text-lg font-black text-white">0</p></div>
+            <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DEX</p><p id="stat-dex" class="text-lg font-black">0</p></div>
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">BE</p><p id="stat-be" class="text-lg font-black text-yellow-400">0</p></div>
             <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">CHARGES</p>
                 <div class="flex items-center gap-1 justify-center">
@@ -184,6 +177,15 @@
     </div>
 
     <div class="max-w-xl mx-auto px-4">
+        <div id="appManual" class="hidden mb-8 bg-purple-900/10 border border-purple-500/30 rounded-2xl p-6 space-y-4 shadow-2xl">
+            <h2 class="pixel-font text-[10px] text-purple-400 uppercase border-b border-purple-500/30 pb-2">App Guide</h2>
+            <div class="text-xs text-slate-400 space-y-4 leading-relaxed text-left">
+                <p><strong>Arc Architect:</strong> Organize your life into "Arcs" (Work, PhD, Grade 7). Standard Arcs help you level up, while Daily Arcs reset every night.</p>
+                <p><strong>Siege Battles:</strong> Gym Leaders are tough. Their Pokémon keep their HP across battles, so you can win by attrition.</p>
+            </div>
+            <button onclick="toggleManual()" class="pixel-font text-[7px] text-center block w-full text-purple-500 uppercase mt-4">Close</button>
+        </div>
+
         <div id="whiteOutBox" class="hidden bg-red-900/30 border border-red-500/50 p-4 rounded-2xl mb-8 text-center">
             <p class="pixel-font text-[8px] text-red-400 uppercase">You whited out!</p>
             <p class="text-[10px] text-slate-300 mt-1">Complete 1 task to revive your team.</p>
@@ -207,27 +209,34 @@
 
         <div id="arcMenu" class="hidden bg-purple-900/20 p-4 rounded-xl border border-purple-500/30 mb-8">
             <h3 class="pixel-font text-[8px] mb-4 text-purple-300 uppercase">Arc Architect</h3>
+            <div class="flex flex-col gap-4 mb-6">
+                <div class="flex gap-2">
+                    <input id="newCatInput" type="text" placeholder="New Arc Name..." class="flex-grow bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-xs outline-none">
+                    <button onclick="addNewCategory()" class="bg-purple-500 text-white px-4 rounded-lg text-xs font-bold uppercase">Add</button>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer ml-1">
+                    <input id="newCatDaily" type="checkbox" class="w-3 h-3 accent-blue-500">
+                    <span class="pixel-font text-[7px] text-blue-300 uppercase">Set as Daily Routine</span>
+                </label>
+            </div>
             <div id="arcList" class="space-y-2"></div>
         </div>
 
         <div id="activeCampaign" class="space-y-6 mb-10"></div>
-
         <div class="mt-12 p-4 bg-black/30 rounded-2xl border border-slate-800">
             <button onclick="toggleDex()" class="w-full flex items-center justify-between"><h2 class="pixel-font text-[9px] text-green-500 uppercase">Pokedex</h2><svg id="dexChev" class="chevron w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg></button>
             <div id="dexGrid" class="grid grid-cols-1 gap-3 mt-6"></div>
         </div>
-
         <div class="mt-8 text-center pb-12">
             <button onclick="toggleDone()" class="w-full flex items-center justify-between px-4"><h2 class="pixel-font text-[9px] text-slate-500 uppercase">History</h2><svg id="doneChev" class="chevron w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg></button>
             <div id="doneList" class="space-y-2 opacity-80 mt-4"></div>
             <button onclick="wipe()" class="mt-16 text-[8px] pixel-font text-slate-700 hover:text-red-500 uppercase">Wipe Data</button>
-            <p class="text-[9px] pixel-font text-slate-500 uppercase mt-4">v13.1.11 Polish Build</p>
+            <p class="text-[9px] pixel-font text-slate-500 uppercase mt-4">v13.1.12 Managed Build</p>
         </div>
     </div>
 
     <script>
-        const VER = '13.1.11'; 
-        
+        const VER = '13.1.12'; 
         const GYMS = [
             { l: 3, leader: "Brock", badge: "Boulder", type: "rock", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/1.png", squad: [{id:74, n:"GEODUDE", t:"rock"}, {id:111, n:"RHYHORN", t:"ground"}, {id:95, n:"ONIX", t:"rock"}] },
             { l: 6, leader: "Misty", badge: "Cascade", type: "water", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/2.png", squad: [{id:120, n:"STARYU", t:"water"}, {id:117, n:"SEADRA", t:"water"}, {id:121, n:"STARMIE", t:"psychic"}] },
@@ -238,37 +247,12 @@
             { l: 21, leader: "Blaine", badge: "Volcano", type: "fire", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/7.png", squad: [{id:58, n:"GROWLITHE", t:"fire"}, {id:77, n:"PONYTA", t:"fire"}, {id:59, n:"ARCANINE", t:"fire"}] },
             { l: 24, leader: "Giovanni", badge: "Earth", type: "ground", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/8.png", squad: [{id:34, n:"NIDOKING", t:"ground"}, {id:31, n:"NIDOQUEEN", t:"ground"}, {id:112, n:"RHYDON", t:"rock"}] }
         ];
-
-        const BADGE_MAP = {
-            "boulder": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/boulder-badge.png",
-            "cascade": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/cascade-badge.png",
-            "thunder": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/thunder-badge.png",
-            "rainbow": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-badge.png",
-            "soul": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-badge.png",
-            "marsh": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/marshbadge.png",
-            "volcano": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/volcanobadge.png",
-            "earth": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/earth-badge.png"
-        };
-
-        const TYPE_ADVANTAGES = {
-            "rock": ["water", "grass", "fighting", "ground"],
-            "water": ["grass", "electric"],
-            "electric": ["ground"],
-            "grass": ["fire", "ice", "poison", "flying", "bug"],
-            "poison": ["ground", "psychic"],
-            "psychic": ["bug", "ghost", "dark"],
-            "fire": ["water", "ground", "rock"],
-            "ground": ["water", "grass", "ice"],
-            "bug": ["fire", "flying", "rock"]
-        };
-
-        const LEGENDARY_DICT = {
-            144: { name: "ARTICUNO", type: "ice", desc: "A legendary bird Pokémon of ice." },
-            145: { name: "ZAPDOS", type: "electric", desc: "A legendary bird Pokémon of lightning." },
-            146: { name: "MOLTRES", type: "fire", desc: "A legendary bird Pokémon of fire." },
-            150: { name: "MEWTWO", type: "psychic", desc: "A science-created Pokémon." },
-            151: { name: "MEW", type: "psychic", desc: "A mythical mirage Pokémon." }
-        };
+        const BADGE_MAP = { "boulder": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/boulder-badge.png", "cascade": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/cascade-badge.png", "thunder": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/thunder-badge.png", "rainbow": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-badge.png", "soul": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-badge.png", "marsh": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/marshbadge.png", "volcano": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/volcanobadge.png", "earth": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/earth-badge.png" };
+        const TYPE_ADVANTAGES = { "rock": ["water", "grass", "fighting", "ground"], "water": ["grass", "electric"], "electric": ["ground"], "grass": ["fire", "ice", "poison", "flying", "bug"], "poison": ["ground", "psychic"], "psychic": ["bug", "ghost", "dark"], "fire": ["water", "ground", "rock"], "ground": ["water", "grass", "ice"], "bug": ["fire", "flying", "rock"] };
+        const LEGENDARY_DICT = { 144: { name: "ARTICUNO", type: "ice", desc: "A legendary bird Pokémon of ice." }, 145: { name: "ZAPDOS", type: "electric", desc: "A legendary bird Pokémon of lightning." }, 146: { name: "MOLTRES", type: "fire", desc: "A legendary bird Pokémon of fire." }, 150: { name: "MEWTWO", type: "psychic", desc: "A science-created Pokémon." }, 151: { name: "MEW", type: "psychic", desc: "A mythical mirage Pokémon." } };
+        const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+        const TRASH_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+        const MASTER_STAR = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
 
         let be = JSON.parse(localStorage.getItem('m_be')) || 0;
         let badges = JSON.parse(localStorage.getItem('m_badges')) || [];
@@ -283,18 +267,11 @@
         let dexCollapsed = JSON.parse(localStorage.getItem('m_dex_coll')) || false;
         let doneCollapsed = JSON.parse(localStorage.getItem('m_done_coll')) || false;
         let gymHP = JSON.parse(localStorage.getItem('m_gym_hp')) || null;
-
-        let editingId = null; 
-        let expandedTaskId = null;
-        let dexExpId = null;
+        let editingId = null; let expandedTaskId = null; let dexExpId = null;
         let pTeam = []; let bTeam = []; let pActive = 0; let bActive = 0;
 
         const getArt = (id, shiny = false) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${shiny ? 'shiny/' : ''}${id}.png?v=${VER}`;
-
-        function getXPLimit() { 
-            const hasCascade = badges.some(b => b.toLowerCase() === "cascade");
-            return hasCascade ? 475 : 500; 
-        }
+        function getXPLimit() { return badges.some(b => b.toLowerCase() === "cascade") ? 475 : 500; }
         function getLvl() { return Math.floor(xp / getXPLimit()) + 1; }
 
         function checkDailyReset() {
@@ -307,20 +284,31 @@
             if (changed) save();
         }
 
+        // RESTORED ARC CRUD LOGIC
+        function addNewCategory() { 
+            const i = document.getElementById('newCatInput'); const d = document.getElementById('newCatDaily');
+            if(i.value.trim()){ arcs.push({name: i.value.trim(), daily: d.checked}); i.value=''; d.checked=false; saveCategories(); } 
+        }
+        function editCategory(oldN) {
+            const nN = prompt("Rename Arc:", oldN);
+            if (nN && nN.trim() && nN !== oldN) {
+                const a = arcs.find(x => x.name === oldN); a.name = nN.trim();
+                tasks.forEach(t => { if(t.category === oldN) t.category = nN.trim(); });
+                saveCategories(); save();
+            }
+        }
+        function removeCategory(n) { if(confirm(`Delete "${n}"?`)){ arcs = arcs.filter(x => x.name !== n); saveCategories(); } }
+        function saveCategories() { localStorage.setItem('m_arcs', JSON.stringify(arcs)); render(); }
+
         async function addQuest() {
             const i = document.getElementById('taskInput'); const c = document.getElementById('categorySelect').value;
-            const btn = document.getElementById('addButton');
-            if (!i.value.trim() || arcs.length === 0) return;
+            const btn = document.getElementById('addButton'); if (!i.value.trim() || arcs.length === 0) return;
             btn.innerText = "..."; btn.disabled = true;
             const id = Math.floor(Math.random() * 151) + 1;
             try {
                 const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`); const d = await r.json();
                 const sr = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`); const sd = await sr.json();
-                tasks.push({
-                    id: Date.now(), text: i.value.trim(), category: c, done: false, mb: false,
-                    pokeID: id, name: d.name.toUpperCase(), type: d.types[0].type.name,
-                    lvl: getLvl(), desc: sd.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/[\f\n\r]/g, ' ')
-                });
+                tasks.push({ id: Date.now(), text: i.value.trim(), category: c, done: false, mb: false, pokeID: id, name: d.name.toUpperCase(), type: d.types[0].type.name, lvl: getLvl(), desc: sd.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/[\f\n\r]/g, ' ') });
                 i.value = ''; save();
             } catch (e) {
                 tasks.push({ id: Date.now(), text: i.value.trim(), category: c, done: false, mb: false, pokeID: id, name: "POKEMON", type: "normal", lvl: getLvl(), desc: "A wild Kanto encounter." });
@@ -332,190 +320,108 @@
             const q = tasks.find(t => t.id === id); const arc = arcs.find(a => a.name === q.category);
             q.done = !q.done;
             if (q.done) {
-                if (whitedOut) whitedOut = false;
-                q.last = new Date().toISOString().split('T')[0];
-                let bg = q.mb ? 50 : (arc && arc.daily ? 5 : 15);
-                if (badges.some(b => b.toLowerCase() === "boulder") && arc && arc.daily) bg = Math.round(bg * 1.15);
-                be += bg;
+                if (whitedOut) whitedOut = false; q.last = new Date().toISOString().split('T')[0];
+                let bg = q.mb ? 50 : (arc && arc.daily ? 5 : 15); if (badges.some(b => b.toLowerCase() === "boulder") && arc && arc.daily) bg = Math.round(bg * 1.15); be += bg;
                 let xg = q.mb ? 150 : 50; if (badges.some(b => b.toLowerCase() === "rainbow")) xg = Math.round(xg * 1.1); xp += xg;
                 battery++; if (battery >= (badges.some(b => b.toLowerCase() === "thunder") ? 4 : 5)) { charges++; battery = 0; }
-                if (!dex.find(p => p.tID === q.id)) {
-                    const s = Math.floor(Math.random() * ((badges.some(b => b.toLowerCase() === "soul") && q.mb) ? 5 : 10)) === 0;
-                    dex.push({ tID: q.id, pokeID: q.pokeID, name: q.name || q.pokeName, type: q.type, shiny: s, desc: q.desc, lvl: q.lvl });
-                }
+                if (!dex.find(p => p.tID === q.id)) { const s = Math.floor(Math.random() * 10) === 0; dex.push({ tID: q.id, pokeID: q.pokeID, name: q.name || q.pokeName, type: q.type, shiny: s, desc: q.desc, lvl: q.lvl }); }
             } else { dex = dex.filter(p => p.tID !== q.id); xp = Math.max(0, xp - 50); }
             save();
         }
 
         function openGym() {
             const g = GYMS.find(g => getLvl() >= g.l && !badges.includes(g.badge)); if (!g) return;
-            toggleBattleScreen(true);
-            document.getElementById('gymTitle').innerText = `${g.leader}`;
-            document.getElementById('leaderImg').src = `${g.img}?v=${VER}`;
-            document.getElementById('battleLog').innerHTML = `> Battle Log Cleared.`;
-            document.getElementById('teamPicker').classList.remove('hidden');
-            document.getElementById('battleMoves').classList.add('hidden');
+            toggleBattleScreen(true); document.getElementById('gymTitle').innerText = `${g.leader}`; document.getElementById('leaderImg').src = `${g.img}?v=${VER}`; document.getElementById('battleLog').innerHTML = `> Battle Log Cleared.`; document.getElementById('teamPicker').classList.remove('hidden'); document.getElementById('battleMoves').classList.add('hidden');
             if (!gymHP || gymHP.badge !== g.badge) { bTeam = g.squad.map(p => ({ ...p, hp: 100 })); } else { bTeam = gymHP.squad; }
             pTeam = []; bActive = bTeam.findIndex(p => p.hp > 0); pActive = 0;
             const p = document.getElementById('teamPicker'); p.innerHTML = '';
-            const eligible = dex.filter(x => x.lvl <= g.l);
-            eligible.forEach(x => {
-                const card = document.createElement('img'); card.src = getArt(x.pokeID, x.shiny);
-                card.className = "w-10 h-10 pixelated border border-slate-700 rounded cursor-pointer";
-                card.onclick = () => pickTeam(x); p.appendChild(card);
+            dex.filter(x => x.lvl <= g.l).forEach(x => {
+                const card = document.createElement('img'); card.src = getArt(x.pokeID, x.shiny); card.className = "w-10 h-10 pixelated border border-slate-700 rounded cursor-pointer"; card.onclick = () => pickTeam(x); p.appendChild(card);
             });
             upUI();
         }
 
-        function pickTeam(x) {
-            if (pTeam.length < 3 && !pTeam.find(t => t.tID === x.tID)) {
-                pTeam.push({ ...x, hp: 100 }); upUI();
-                if (pTeam.length === 3) {
-                    document.getElementById('teamPicker').classList.add('hidden');
-                    document.getElementById('battleMoves').classList.remove('hidden');
-                    addLog("Ready! Strategic strike engaged.");
-                }
-            }
-        }
-
-        function addLog(msg) {
-            const log = document.getElementById('battleLog');
-            log.innerHTML += `<br>> ${msg}`;
-            log.scrollTop = log.scrollHeight;
-        }
-
+        function pickTeam(x) { if (pTeam.length < 3 && !pTeam.find(t => t.tID === x.tID)) { pTeam.push({ ...x, hp: 100 }); upUI(); if (pTeam.length === 3) { document.getElementById('teamPicker').classList.add('hidden'); document.getElementById('battleMoves').classList.remove('hidden'); addLog("Ready!"); } } }
+        function addLog(msg) { const log = document.getElementById('battleLog'); log.innerHTML += `<br>> ${msg}`; log.scrollTop = log.scrollHeight; }
         function upUI() {
             const ba = bTeam[bActive]; const pa = pTeam[pActive];
             if(ba) { document.getElementById('sprite-boss-active').src = getArt(ba.id); document.getElementById('hp-boss-active').style.width = ba.hp + '%'; document.getElementById('bossActiveName').innerText = ba.n; }
             if(pa) { document.getElementById('sprite-player-active').src = getArt(pa.pokeID, pa.shiny); document.getElementById('hp-player-active').style.width = pa.hp + '%'; document.getElementById('playerActiveName').innerText = pa.name; }
-            
-            const bBench = document.getElementById('bossBench'); bBench.innerHTML = '';
-            bTeam.forEach((p, idx) => { if(idx !== bActive) bBench.innerHTML += `<img src="${getArt(p.id)}" class="w-8 h-8 pixelated ${p.hp <= 0 ? 'grayscale opacity-10' : ''}">`; });
-            const pBench = document.getElementById('playerBench'); pBench.innerHTML = '';
-            pTeam.forEach((p, idx) => { if(idx !== pActive) pBench.innerHTML += `<img src="${getArt(p.pokeID, p.shiny)}" class="bench-sprite pixelated ${p.hp <= 0 ? 'grayscale opacity-10' : ''}">`; });
-            
-            document.getElementById('battleBEMeter').style.width = Math.min(100, be) + '%';
-            document.getElementById('beLabel').innerText = `ENERGY: ${be}`; 
+            const bB = document.getElementById('bossBench'); bB.innerHTML = ''; bTeam.forEach((p, idx) => { if(idx !== bActive) bB.innerHTML += `<img src="${getArt(p.id)}" class="w-8 h-8 pixelated ${p.hp <= 0 ? 'grayscale opacity-10' : ''}">`; });
+            const pB = document.getElementById('playerBench'); pB.innerHTML = ''; pTeam.forEach((p, idx) => { if(idx !== pActive) pB.innerHTML += `<img src="${getArt(p.pokeID, p.shiny)}" class="bench-sprite pixelated ${p.hp <= 0 ? 'grayscale opacity-10' : ''}">`; });
+            document.getElementById('battleBEMeter').style.width = Math.min(100, be) + '%'; document.getElementById('beLabel').innerText = `ENERGY: ${be}`; 
         }
 
         function executeMove(type) {
             if (pActive >= 3 || bActive >= 3) return;
             let cost = type === 'basic' ? 10 : (type === 'elemental' ? 30 : 100); if (be < cost) { addLog("Low energy!"); return; }
-            be -= cost; let dmg = type === 'basic' ? 15 : (type === 'elemental' ? 30 : 80);
-            const p = pTeam[pActive]; const b = bTeam[bActive];
-            
-            if (type === 'elemental') {
-                if (p.shiny) dmg *= 1.2;
-                const weaknesses = TYPE_ADVANTAGES[b.t] || [];
-                if (weaknesses.includes(p.type)) { dmg *= 2.5; addLog(`${b.n} is weak to ${p.type.toUpperCase()}!`); }
-            }
-            b.hp -= dmg; addLog(`${p.name} dealt ${Math.round(dmg)} damage.`);
-            
-            if (b.hp <= 0) { 
-                b.hp = 0; bActive++; addLog(`${b.n} fainted!`); 
-                upUI(); checkEnd();
-            } else {
-                let bd = 12 + (getLvl() * 2); p.hp -= bd;
-                addLog(`${bTeam[bActive].n} counters for ${bd}.`);
-                if (p.hp <= 0) { p.hp = 0; pActive++; addLog(`${p.name} whited out!`); }
-                upUI(); checkEnd();
-            }
+            be -= cost; let dmg = type === 'basic' ? 15 : (type === 'elemental' ? 30 : 80); const p = pTeam[pActive]; const b = bTeam[bActive];
+            if (type === 'elemental' && TYPE_ADVANTAGES[b.t]?.includes(p.type)) { dmg *= 2.5; addLog("Weakness hit!"); }
+            b.hp -= dmg; addLog(`${p.name} hit for ${Math.round(dmg)}.`);
+            if (b.hp <= 0) { b.hp = 0; bActive++; addLog(`${b.n} fainted!`); upUI(); checkEnd(); }
+            else { let bd = 12 + (getLvl() * 2); p.hp -= bd; addLog(`${bTeam[bActive].n} counters!`); if (p.hp <= 0) { p.hp = 0; pActive++; addLog(`${p.name} down!`); } upUI(); checkEnd(); }
         }
 
         function checkEnd() {
-            const g = GYMS.find(g => !badges.includes(g.badge));
-            gymHP = { badge: g.badge, squad: bTeam }; localStorage.setItem('m_gym_hp', JSON.stringify(gymHP));
-            if (bActive >= 3) { alert(`Victory! Earned ${g.badge} Badge!`); badges.push(g.badge); gymHP = null; localStorage.removeItem('m_gym_hp'); toggleBattleScreen(false); save(); }
-            else if (pActive >= 3) { alert("You were defeated!"); whitedOut = true; toggleBattleScreen(false); render(); }
+            const g = GYMS.find(g => !badges.includes(g.badge)); gymHP = { badge: g.badge, squad: bTeam }; localStorage.setItem('m_gym_hp', JSON.stringify(gymHP));
+            if (bActive >= 3) { alert(`Victory!`); badges.push(g.badge); gymHP = null; toggleBattleScreen(false); save(); }
+            else if (pActive >= 3) { alert("Defeat!"); whitedOut = true; toggleBattleScreen(false); render(); }
         }
 
-        function save() {
-            localStorage.setItem('m_xp', JSON.stringify(xp)); localStorage.setItem('m_be', JSON.stringify(be));
-            localStorage.setItem('m_tasks', JSON.stringify(tasks)); localStorage.setItem('m_dex', JSON.stringify(dex));
-            localStorage.setItem('m_charges', JSON.stringify(charges)); localStorage.setItem('m_battery', JSON.stringify(battery));
-            localStorage.setItem('m_whiteout', JSON.stringify(whitedOut)); localStorage.setItem('m_badges', JSON.stringify(badges));
-            render();
-        }
-
+        function save() { localStorage.setItem('m_xp', JSON.stringify(xp)); localStorage.setItem('m_be', JSON.stringify(be)); localStorage.setItem('m_tasks', JSON.stringify(tasks)); localStorage.setItem('m_dex', JSON.stringify(dex)); localStorage.setItem('m_charges', JSON.stringify(charges)); localStorage.setItem('m_battery', JSON.stringify(battery)); localStorage.setItem('m_whiteout', JSON.stringify(whitedOut)); localStorage.setItem('m_badges', JSON.stringify(badges)); render(); }
         function render() {
-            const s = document.getElementById('activeCampaign'); const cGrid = document.getElementById('dexGrid');
-            const dList = document.getElementById('doneList'); const cSel = document.getElementById('categorySelect'); if (!s) return;
-            s.innerHTML = ''; cGrid.innerHTML = ''; dList.innerHTML = '';
-            const cur = cSel.value; cSel.innerHTML = '';
-            arcs.forEach(a => { cSel.innerHTML += `<option value="${a.name}" ${a.name === cur ? 'selected' : ''}>${a.name}</option>`; });
-            const lvl = getLvl(); const g = GYMS.find(g => lvl >= g.l && !badges.includes(g.badge));
-            document.getElementById('gymBanner').classList.toggle('hidden', !g || whitedOut);
+            const s = document.getElementById('activeCampaign'); const cG = document.getElementById('dexGrid'); const dL = document.getElementById('doneList'); const cS = document.getElementById('categorySelect'); const aL = document.getElementById('arcList'); if (!s) return;
+            s.innerHTML = ''; cG.innerHTML = ''; dL.innerHTML = ''; aL.innerHTML = '';
+            const cur = cS.value; cS.innerHTML = '';
+            arcs.forEach(a => { 
+                cS.innerHTML += `<option value="${a.name}" ${a.name === cur ? 'selected' : ''}>${a.name}</option>`; 
+                aL.innerHTML += `<div class="flex items-center justify-between bg-black/30 p-2 rounded border border-purple-500/20"><span class="text-[10px] ${a.daily ? 'text-blue-400' : ''}">${a.name}</span><div class="flex gap-2"><button onclick="editCategory('${a.name}')" class="w-3 h-3 text-slate-500">${EDIT_ICON}</button><button onclick="removeCategory('${a.name}')" class="w-3 h-3 text-slate-700">${TRASH_ICON}</button></div></div>`;
+            });
+            document.getElementById('gymBanner').classList.toggle('hidden', !GYMS.find(g => getLvl() >= g.l && !badges.includes(g.badge)) || whitedOut);
             document.getElementById('whiteOutBox').classList.toggle('hidden', !whitedOut);
             arcs.forEach(arc => {
                 const act = tasks.filter(t => t.category === arc.name && !t.done);
                 if (act.length > 0) {
                     const coll = collapsedArcs.includes(arc.name);
-                    let items = act.map(t => {
-                        const finalName = t.name || t.pokeName || t.pokemon_name || "WILD POKEMON";
-                        return `
-                        <div class="task-card p-3 rounded-xl flex items-center gap-4 ${t.mb ? 'master-priority' : ''}">
-                            <img src="${getArt(t.pokeID)}" class="w-10 h-10 pixelated brightness-0 opacity-10">
-                            <div class="flex-grow min-w-0">
-                                ${editingId === t.id ? `<input id="edit-${t.id}" type="text" value="${t.text}" class="w-full bg-black/40 border-b border-purple-500 text-sm py-1 outline-none" onkeypress="if(event.key === 'Enter') saveEdit(${t.id})" onblur="saveEdit(${t.id})">` : `<p onclick="expandedTaskId = expandedTaskId === ${t.id} ? null : ${t.id}; render();" class="text-sm font-semibold task-text ${expandedTaskId === t.id ? 'expanded' : 'truncate'}">${t.text}</p>`}
-                                <p class="text-[6px] pixel-font text-slate-500 mt-1 uppercase">${finalName}</p>
-                            </div>
-                            <div class="action-pillar flex flex-col items-center gap-2 pl-2">
-                                <button onclick="delT(${t.id})" class="w-4 h-4 text-slate-700">${TRASH_ICON}</button>
-                                <button onclick="setMB(${t.id})" class="w-4 h-4 ${t.mb ? 'text-purple-400' : 'text-slate-700'}">${MASTER_STAR}</button>
-                                <button onclick="editT(${t.id})" class="w-4 h-4 text-slate-700">${EDIT_ICON}</button>
-                                <button onclick="toggleQuest(${t.id})" class="text-green-500 font-bold text-xl">✓</button>
-                            </div>
-                        </div>`;
-                    }).join('');
+                    let items = act.map(t => `<div class="task-card p-3 rounded-xl flex items-center gap-4 ${t.mb ? 'master-priority' : ''}"><img src="${getArt(t.pokeID)}" class="w-10 h-10 pixelated brightness-0 opacity-10"><div class="flex-grow min-w-0">${editingId === t.id ? `<input id="edit-${t.id}" type="text" value="${t.text}" class="w-full bg-black/40 border-b border-purple-500 text-sm py-1 outline-none" onkeypress="if(event.key === 'Enter') saveEdit(${t.id})" onblur="saveEdit(${t.id})">` : `<p onclick="expandedTaskId = expandedTaskId === ${t.id} ? null : ${t.id}; render();" class="text-sm font-semibold task-text ${expandedTaskId === t.id ? 'expanded' : 'truncate'}">${t.text}</p>`}<p class="text-[6px] pixel-font text-slate-500 mt-1 uppercase">${t.name || "POKEMON"}</p></div><div class="action-pillar flex flex-col items-center gap-2 pl-2"><button onclick="delT(${t.id})" class="w-4 h-4 text-slate-700">${TRASH_ICON}</button><button onclick="setMB(${t.id})" class="w-4 h-4 ${t.mb ? 'text-purple-400' : 'text-slate-700'}">${MASTER_STAR}</button><button onclick="editT(${t.id})" class="w-4 h-4 text-slate-700">${EDIT_ICON}</button><button onclick="toggleQuest(${t.id})" class="text-green-500 font-bold text-xl">✓</button></div></div>`).join('');
                     s.innerHTML += `<div class="mb-6"><div onclick="toggleArc('${arc.name}')" class="category-header flex justify-between p-2 rounded-lg mb-2 ${arc.daily ? 'daily-arc-header bg-blue-900/5' : ''}"><h3 class="pixel-font text-[7px] ${arc.daily ? 'text-blue-400' : 'text-purple-400'} uppercase">${arc.name}</h3><svg class="chevron w-3 h-3 ${coll ? 'collapsed' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg></div><div class="${coll ? 'hidden' : 'space-y-3'}">${items}</div></div>`;
                 }
             });
             if (!dexCollapsed) {
                 const unq = []; dex.forEach(p => { if(!unq.find(u => u.pokeID === p.pokeID && u.shiny === p.shiny)) unq.push(p); });
-                cGrid.innerHTML = unq.map(p => {
-                    const finalDexName = p.name || p.pokeName || p.pokemon_name || "POKEMON";
-                    return `<div class="dex-card p-3 ${p.shiny ? 'shiny-card' : ''}" onclick="dexExpId = dexExpId === '${p.tID}' ? null : '${p.tID}'; render();"><div class="flex items-center gap-3"><img src="${getArt(p.pokeID, p.shiny)}" class="w-10 h-10 pixelated"><span class="text-[8px] pixel-font text-green-400 uppercase">${finalDexName}${p.shiny?'✨':''}</span></div><div class="${dexExpId === String(p.tID) ? 'block' : 'hidden'} mt-2 text-[10px] text-slate-300 italic">${p.desc}</div></div>`;
-                }).join('');
+                cG.innerHTML = unq.map(p => `<div class="dex-card p-3 ${p.shiny ? 'shiny-card' : ''}" onclick="dexExpId = dexExpId === '${p.tID}' ? null : '${p.tID}'; render();"><div class="flex items-center gap-3"><img src="${getArt(p.pokeID, p.shiny)}" class="w-10 h-10 pixelated"><span class="text-[8px] pixel-font text-green-400 uppercase">${p.name || "POKEMON"}${p.shiny?'✨':''}</span></div><div class="${dexExpId === String(p.tID) ? 'block' : 'hidden'} mt-2 text-[10px] text-slate-300 italic">${p.desc}</div></div>`).join('');
             }
-            if (!doneCollapsed) dList.innerHTML = tasks.filter(t => t.done).map(t => `<div class="flex justify-between p-2 bg-slate-900/30 rounded border border-white/5"><span class="text-xs line-through text-slate-500 truncate">${t.text}</span><button onclick="toggleQuest(${t.id})" class="text-[8px] text-purple-400 font-bold uppercase">Undo</button></div>`).join('');
-            
-            document.getElementById('lvl-text').innerText = `LVL ${lvl}`;
+            if (!doneCollapsed) dL.innerHTML = tasks.filter(t => t.done).map(t => `<div class="flex justify-between p-2 bg-slate-900/30 rounded border border-white/5"><span class="text-xs line-through text-slate-500 truncate">${t.text}</span><button onclick="toggleQuest(${t.id})" class="text-[8px] text-purple-400 font-bold uppercase">Undo</button></div>`).join('');
+            document.getElementById('lvl-text').innerText = `LVL ${getLvl()}`;
             document.getElementById('xp-text').innerText = `${xp % getXPLimit()} / ${getXPLimit()}`;
             document.getElementById('xp-fill').style.width = (xp % getXPLimit() / (getXPLimit()/100)) + '%';
-            document.getElementById('stat-dex').innerText = dex.length;
-            document.getElementById('stat-be').innerText = be;
-            document.getElementById('stat-charges').innerText = charges;
-            let dots = ""; for(let i=0; i < (badges.some(b => b.toLowerCase() === "thunder") ? 4 : 5); i++) dots += `<div class="w-1.5 h-1.5 rounded-full ${i < battery ? 'bg-purple-500' : 'bg-slate-800'}"></div>`;
-            document.getElementById('charge-dots').innerHTML = dots;
+            document.getElementById('stat-dex').innerText = dex.length; document.getElementById('stat-be').innerText = be; document.getElementById('stat-charges').innerText = charges;
+            let dts = ""; for(let i=0; i < (badges.some(b => b.toLowerCase() === "thunder") ? 4 : 5); i++) dts += `<div class="w-1.5 h-1.5 rounded-full ${i < battery ? 'bg-purple-500' : 'bg-slate-800'}"></div>`;
+            document.getElementById('charge-dots').innerHTML = dts;
             document.getElementById('badge-container').innerHTML = badges.map(b => `<img src="${BADGE_MAP[b.toLowerCase()]}?v=${VER}" class="w-7 h-7 pixelated" title="${b} Badge active">`).join('');
         }
 
         function toggleBattleScreen(v) { if (!v && bTeam.length > 0) { const g = GYMS.find(g => !badges.includes(g.badge)); gymHP = { badge: g.badge, squad: bTeam }; localStorage.setItem('m_gym_hp', JSON.stringify(gymHP)); } document.getElementById('battleScreen').classList.toggle('hidden', !v); }
         function toggleManual() { document.getElementById('appManual').classList.toggle('hidden'); }
-        function toggleArcMenu() { document.getElementById('arcMenu').classList.toggle('hidden'); }
-        function delT(id) { if(confirm("Delete Quest?")){ tasks = tasks.filter(t => t.id !== id); dex = dex.filter(p => p.tID !== id); save(); } }
+        function toggleArcMenu() { document.getElementById('arcMenu').classList.toggle('hidden'); render(); }
+        function delT(id) { if(confirm("Delete?")){ tasks = tasks.filter(t => t.id !== id); dex = dex.filter(p => p.tID !== id); save(); } }
         function editT(id) { editingId = id; render(); const i = document.getElementById(`edit-${id}`); if(i){ i.focus(); i.select(); } }
         function saveEdit(id) { const i = document.getElementById(`edit-${id}`); if (i && i.value.trim()) { tasks.find(t => t.id === id).text = i.value.trim(); } editingId = null; save(); }
         async function setMB(id) {
             const q = tasks.find(t => t.id === id); if(q.mb) { q.mb = false; save(); return; }
-            if (charges <= 0) { alert("Insufficient charges!"); return; }
+            if (charges <= 0) { alert("No charges!"); return; }
             const lids = [144, 145, 146, 150, 151]; const lid = lids[Math.floor(Math.random()*5)];
             try {
                 const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${lid}`); const d = await r.json();
                 const sr = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${lid}`); const sd = await sr.json();
-                q.mb = true; q.pokeID = lid; q.name = d.name.toUpperCase();
-                q.desc = sd.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/[\f\n\r]/g, ' '); 
+                q.mb = true; q.pokeID = lid; q.name = d.name.toUpperCase(); q.desc = sd.flavor_text_entries.find(e => e.language.name === 'en').flavor_text.replace(/[\f\n\r]/g, ' '); 
                 charges--; save();
-            } catch (e) {
-                const fb = LEGENDARY_DICT[lid];
-                q.mb = true; q.pokeID = lid; q.name = fb.name; q.desc = fb.desc;
-                charges--; save();
-            }
+            } catch (e) { const fb = LEGENDARY_DICT[lid]; q.mb = true; q.pokeID = lid; q.name = fb.name; q.desc = fb.desc; charges--; save(); }
         }
         function toggleArc(n) { if(collapsedArcs.includes(n)) collapsedArcs = collapsedArcs.filter(x => x !== n); else collapsedArcs.push(n); localStorage.setItem('m_coll_arcs', JSON.stringify(collapsedArcs)); render(); }
         function toggleDex() { dexCollapsed = !dexCollapsed; localStorage.setItem('m_dex_coll', dexCollapsed); render(); }
         function toggleDone() { doneCollapsed = !doneCollapsed; localStorage.setItem('m_done_coll', doneCollapsed); render(); }
-        function wipe() { if(confirm("Erase all progress?")){ localStorage.clear(); location.reload(); } }
+        function wipe() { if(confirm("Erase all data?")){ localStorage.clear(); location.reload(); } }
 
         checkDailyReset(); render();
     </script>

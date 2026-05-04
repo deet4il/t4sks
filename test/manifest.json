@@ -1,0 +1,17 @@
+{
+  "name": "GOTTA DO 'EM ALL",
+  "short_name": "PokeTask",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#4c1d95",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/188/188918.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

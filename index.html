@@ -282,20 +282,52 @@
             storyContainer.innerHTML = ''; collectionGrid.innerHTML = ''; document.getElementById('doneList').innerHTML = '';
 
             categories.forEach(cat => {
-                const activeInCat = quests.filter(q => q.category === cat && !q.completed).sort((a,b) => b.isMasterBall - a.isMasterBall);
-                const isCollapsed = collapsedArcs.includes(cat);
-                
-                if (activeInCat.length > 0) {
-                    const section = document.createElement('div');
-                    section.innerHTML = `
-    <div class="category-header flex items-center justify-between p-2 mt-6 mb-3 rounded-lg" onclick="toggleArc('${cat}')">
-        <h3 class="pixel-font text-[8px] text-purple-400 uppercase tracking-widest">${cat}</h3>
-        <svg class="chevron w-3 h-3 text-purple-500 ${isCollapsed ? 'collapsed' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
-    </div>
-    <div class="space-y-3 ${isCollapsed ? 'hidden' : ''}" id="list-${cat.replace(/\W/g,'')}"></div>`;
-storyContainer.appendChild(section);
+    const activeInCat = quests.filter(q => q.category === cat && !q.completed).sort((a,b) => b.isMasterBall - a.isMasterBall);
+    const isCollapsed = collapsedArcs.includes(cat);
+    
+    if (activeInCat.length > 0) {
+        const section = document.createElement('div');
+        
+        // Create header
+        const header = document.createElement('div');
+        header.className = "category-header flex items-center justify-between p-2 mt-6 mb-3 rounded-lg";
+        header.onclick = () => toggleArc(cat);
+        header.innerHTML = `
+            <h3 class="pixel-font text-[8px] text-purple-400 uppercase tracking-widest">${cat}</h3>
+            <svg class="chevron w-3 h-3 text-purple-500 ${isCollapsed ? 'collapsed' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+        `;
+        section.appendChild(header);
 
-const listDiv = document.getElementById(`list-${cat.replace(/\W/g,'')}`);
+        // Create the task container directly
+        const listDiv = document.createElement('div');
+        listDiv.className = `space-y-3 ${isCollapsed ? 'hidden' : ''}`;
+        section.appendChild(listDiv);
+        
+        storyContainer.appendChild(section);
+
+        activeInCat.forEach(q => {
+            const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;
+            const isEditing = editingId === q.id;
+            
+            listDiv.innerHTML += `
+                <div class="task-card p-3 rounded-xl flex items-center gap-4 ${q.isMasterBall ? 'master-priority' : ''}">
+                    <img src="${sprite}" class="w-12 h-12 pixelated brightness-0 opacity-10">
+                    <div class="flex-grow min-w-0">
+                        ${isEditing ? 
+                            `<input id="edit-${q.id}" type="text" value="${q.text}" 
+                                class="w-full bg-black/40 border-b border-purple-500 text-sm py-1 outline-none" 
+                                onkeypress="if(event.key === 'Enter') saveEdit(${q.id})"
+                                onblur="saveEdit(${q.id})">` : 
+                            `<p class="text-sm font-semibold truncate text-slate-200">${q.text}</p>`
+                        }
+                    </div>
+                    <div class="flex items-center gap-1">
+                        ${!isEditing ? `<button onclick="startEdit(${q.id})" class="p-1 text-slate-500 hover:text-white transition-colors w-5 h-5">${EDIT_ICON}</button>` : ''}
+                        <button onclick="setMasterBall(${q.id})" class="w-6 h-6 p-1 transition-all ${q.isMasterBall ? 'text-purple-400' : 'text-slate-700 hover:text-purple-500'}">${MASTER_STAR}</button>
+                        <button onclick="toggleQuest(${q.id})" class="p-2 text-green-400 text-lg font-bold">✓</button>
+                    </div>
+                </div>`;
+            
 if (!listDiv) return; // This is the Guard Clause that stops the error pop-up
                     activeInCat.forEach(q => {
                         const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${q.pokeID}.png`;

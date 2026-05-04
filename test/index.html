@@ -1,313 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GOTTA DO 'EM ALL [TESTING]</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#4c1d95">
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/188/188918.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOTTA DO 'EM ALL</title>
 
-    <script>
-        (function migrateData() {
-            const migrations = [
-                { old: 'gwapo_tasks_v6', new: 'm_tasks' },
-                { old: 'gwapo_dex_v4', new: 'm_dex' },
-                { old: 'gwapo_xp_v2', new: 'm_xp' },
-                { old: 'gwapo_be_v2', new: 'm_be' },
-                { old: 'gwapo_badges_v2', new: 'm_badges' },
-                { old: 'gwapo_m_charges', new: 'm_charges' },
-                { old: 'gwapo_m_battery', new: 'm_battery' },
-                { old: 'gwapo_categories_v2', new: 'm_arcs' }
-            ];
-            migrations.forEach(m => {
-                let oldData = localStorage.getItem(m.old);
-                let newData = localStorage.getItem(m.new);
-                if (oldData && (!newData || newData === '[]' || newData === '0' || newData === 'null')) {
-                    let parsed = JSON.parse(oldData);
-                    if (m.new === 'm_tasks' && Array.isArray(parsed)) {
-                        parsed = parsed.map(t => ({ ...t, done: t.done !== undefined ? t.done : (t.completed || false), mb: t.mb !== undefined ? t.mb : (t.isMasterBall || false), desc: t.desc || t.description || "Kanto Pokemon", name: t.name || t.pokeName || t.pokemon_name || "WILD POKEMON" }));
-                    }
-                    if (m.new === 'm_dex' && Array.isArray(parsed)) {
-                        parsed = parsed.map(p => ({ ...p, name: p.name || p.pokeName || p.pokemon_name || "POKEMON", desc: p.desc || p.description || "A mysterious Pokémon.", shiny: p.shiny !== undefined ? p.shiny : (p.isShiny || false), tID: p.tID || p.taskID, lvl: p.lvl || p.catchLevel || 1 }));
-                    }
-                    localStorage.setItem(m.new, JSON.stringify(parsed));
-                }
-            });
-        })();
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4c1d95">
 
-        let newWorker;
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
-                reg.addEventListener('updatefound', () => {
-                    newWorker = reg.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            document.getElementById('updateToast').classList.remove('hidden');
-                        }
-                    });
-                });
-            });
-        }
-        function applyUpdate() { if (newWorker) newWorker.postMessage({ type: 'SKIP_WAITING' }); }
-        navigator.serviceWorker.addEventListener('controllerchange', () => { window.location.reload(); });
-    </script>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #020617; color: white; min-height: 100vh; overflow-x: hidden; }
-        .pixel-font { font-family: 'Press Start 2P', cursive; }
-        .header-bg { background: linear-gradient(180deg, #6b21a8 0%, #4c1d95 100%); border-bottom: 6px solid #000; }
-        .xp-bar-container { background: #1e1b4b; border: 2px solid #000; height: 12px; border-radius: 6px; overflow: hidden; }
-        #xp-fill { background: linear-gradient(90deg, #22c55e, #4ade80); width: 0%; transition: width 0.5s ease; height: 100%; }
-        .task-card { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s; }
-        .master-priority { background: rgba(168, 85, 247, 0.2) !important; border: 2px solid #a855f7 !important; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
-        .pixelated { image-rendering: pixelated; }
-        .dex-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; transition: all 0.3s; }
-        .category-header { border-left: 4px solid #a855f7; padding-left: 12px; }
-        .hp-bar-container { background: #450a0a; border: 1px solid #000; height: 8px; border-radius: 4px; overflow: hidden; }
-        .hp-fill { background: linear-gradient(90deg, #ef4444, #f87171); width: 100%; transition: width 0.3s ease; height: 100%; }
-        .hp-fill-player { background: linear-gradient(90deg, #22c55e, #4ade80); }
-        .be-meter { background: linear-gradient(90deg, #f59e0b, #fbbf24); height: 100%; transition: width 0.3s ease; }
-        .chevron { transition: transform 0.3s; }
-        .chevron.collapsed { transform: rotate(-90deg); }
-        #battleLog { height: 70px; overflow-y: auto; font-size: 7px; scrollbar-width: none; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; }
-        .leader-bench { display: flex; justify-content: center; gap: 8px; opacity: 0.4; margin-bottom: 8px; }
-        .user-bench-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; opacity: 0.5; }
-        .bench-sprite { width: 32px; height: 32px; }
-        .leader-portrait { height: 100px; width: 100px; object-fit: contain; }
-    </style>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="pb-24 text-left">
 
-    <div id="battleScreen" class="hidden fixed inset-0 z-[200] bg-black flex flex-col items-center justify-between p-4 overflow-hidden">
-        <div class="w-full flex flex-col items-center mt-2">
-            <div id="bossBench" class="leader-bench"></div>
-            <img id="leaderImg" class="leader-portrait pixelated">
-            <h2 id="gymTitle" class="pixel-font text-blue-400 text-[8px] uppercase mt-2"></h2>
-        </div>
-        <div class="w-full space-y-4">
-            <div class="flex flex-col items-center">
-                <p id="bossActiveName" class="pixel-font text-[6px] text-red-400 mb-1 uppercase"></p>
-                <div class="hp-bar-container w-24 mb-1"><div id="hp-boss-active" class="hp-fill"></div></div>
-                <img id="sprite-boss-active" class="w-32 h-32 pixelated animate-bounce">
-            </div>
-            <div class="flex flex-col items-center">
-                <img id="sprite-player-active" class="w-32 h-32 pixelated">
-                <div class="hp-bar-container w-24 mt-1"><div id="hp-player-active" class="hp-fill hp-fill-player"></div></div>
-                <p id="playerActiveName" class="pixel-font text-[6px] text-green-400 mt-1 uppercase"></p>
-            </div>
-        </div>
-        <div class="w-full max-w-sm">
-            <div id="playerBench" class="user-bench-row"></div>
-            <div id="battleLog" class="p-2 pixel-font text-slate-400 leading-relaxed mb-4"></div>
-            <div id="teamPicker" class="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto bg-slate-900/50 p-2 rounded-xl border border-blue-500/20"></div>
-            
-            <button id="deployBtn" onclick="deployTeam()" class="hidden w-full bg-green-600 p-3 text-[8px] pixel-font rounded uppercase mb-2">Deploy Selected Team</button>
+<body class="bg-slate-950 text-white p-4">
 
-            <div id="battleMoves" class="hidden grid grid-cols-2 gap-2">
-                <button onclick="executeMove('basic')" class="bg-slate-800 p-3 text-[8px] pixel-font rounded uppercase border border-slate-700">Basic</button>
-                <button onclick="executeMove('elemental')" class="bg-blue-900/50 p-3 text-[8px] pixel-font rounded uppercase border border-blue-500/50">Elemental</button>
-                <button onclick="executeMove('burst')" class="col-span-2 bg-purple-900/40 p-3 text-[8px] pixel-font rounded border border-purple-500 uppercase">Burst Finish</button>
-                <div class="col-span-2 px-1"><p id="beLabel" class="pixel-font text-[5px] text-yellow-500 text-center mb-1"></p><div class="hp-bar-container h-1.5 mx-1"><div id="battleBEMeter" class="be-meter"></div></div></div>
-            </div>
-            <button onclick="toggleBattleScreen(false)" class="block mx-auto mt-4 text-[7px] pixel-font text-slate-600 uppercase">Withdraw</button>
-        </div>
+<h1 class="text-xl font-bold mb-4">GOTTA DO 'EM ALL</h1>
+
+<input id="taskInput" class="text-black p-2 rounded w-full mb-2" placeholder="Add task...">
+<button id="addBtn" class="bg-purple-600 px-4 py-2 rounded w-full mb-4">Add</button>
+
+<div id="taskList" class="space-y-2"></div>
+
+<hr class="my-4">
+
+<p>XP: <span id="xp">0</span></p>
+<p>Energy: <span id="be">0</span></p>
+
+<script>
+// ==========================
+// CONFIG
+// ==========================
+const CONFIG = {
+  XP_GAIN: 50,
+  BE_GAIN: 15,
+  API: 'https://pokeapi.co/api/v2/pokemon/'
+};
+
+// ==========================
+// STORAGE
+// ==========================
+const storage = {
+  load(key, fallback) {
+    try {
+      return JSON.parse(localStorage.getItem(key)) ?? fallback;
+    } catch {
+      return fallback;
+    }
+  },
+  save(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+};
+
+// ==========================
+// STATE
+// ==========================
+const state = {
+  tasks: storage.load('tasks', []),
+  xp: storage.load('xp', 0),
+  be: storage.load('be', 0)
+};
+
+// ==========================
+// API CACHE
+// ==========================
+const cache = new Map();
+
+async function getPokemon(id) {
+  if (cache.has(id)) return cache.get(id);
+
+  const res = await fetch(CONFIG.API + id);
+  const data = await res.json();
+
+  const result = {
+    name: data.name.toUpperCase(),
+    type: data.types[0].type.name
+  };
+
+  cache.set(id, result);
+  return result;
+}
+
+// ==========================
+// STATE UPDATE
+// ==========================
+function update(fn) {
+  fn(state);
+  persist();
+  render();
+}
+
+function persist() {
+  storage.save('tasks', state.tasks);
+  storage.save('xp', state.xp);
+  storage.save('be', state.be);
+}
+
+// ==========================
+// ACTIONS
+// ==========================
+async function addTask() {
+  const input = document.getElementById('taskInput');
+  if (!input.value.trim()) return;
+
+  const id = Math.floor(Math.random() * 151) + 1;
+  const poke = await getPokemon(id);
+
+  update(s => {
+    s.tasks.push({
+      id: Date.now(),
+      text: input.value,
+      done: false,
+      poke
+    });
+  });
+
+  input.value = '';
+}
+
+function toggleTask(id) {
+  update(s => {
+    const t = s.tasks.find(x => x.id === id);
+    if (!t) return;
+
+    t.done = !t.done;
+
+    if (t.done) {
+      s.xp += CONFIG.XP_GAIN;
+      s.be += CONFIG.BE_GAIN;
+    }
+  });
+}
+
+// ==========================
+// RENDER
+// ==========================
+function render() {
+  renderTasks();
+  renderStats();
+}
+
+function renderTasks() {
+  const container = document.getElementById('taskList');
+  container.innerHTML = state.tasks.map(t => `
+    <div class="p-2 bg-slate-800 rounded flex justify-between">
+      <span class="${t.done ? 'line-through text-gray-500' : ''}">
+        ${t.text} (${t.poke.name})
+      </span>
+      <button onclick="toggleTask(${t.id})">✓</button>
     </div>
+  `).join('');
+}
 
-    <div id="updateToast" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-purple-600 border-2 border-white p-4 rounded-xl flex items-center gap-4 shadow-2xl">
-        <p class="pixel-font text-[8px]">PATCH READY!</p>
-        <button onclick="applyUpdate()" class="bg-white text-purple-600 px-3 py-1 rounded-lg font-bold text-[10px]">RELOAD</button>
-    </div>
+function renderStats() {
+  document.getElementById('xp').innerText = state.xp;
+  document.getElementById('be').innerText = state.be;
+}
 
-    <header class="header-bg py-6 text-center shadow-2xl mb-8">
-        <h1 class="pixel-font text-lg mb-2 uppercase">GOTTA DO 'EM ALL</h1>
-        <p id="rank-text" class="pixel-font text-[7px] text-purple-300 mb-4 uppercase"></p>
-        <div id="badge-container" class="flex justify-center gap-2 mb-4 h-8 items-center"></div>
-        <button onclick="toggleManual()" class="pixel-font text-[7px] text-purple-300 border border-purple-500/50 px-2 py-1 rounded uppercase">App Guide</button>
-        <div class="max-w-xs mx-auto px-4 mt-6">
-            <div class="flex justify-between items-end mb-1"><span id="lvl-text" class="pixel-font text-[9px] text-green-400 font-bold"></span><span id="xp-text" class="pixel-font text-[7px]"></span></div>
-            <div class="xp-bar-container"><div id="xp-fill"></div></div>
-        </div>
-        <div class="flex justify-center gap-6 mt-6">
-            <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">DEX</p><p id="stat-dex" class="text-lg font-black"></p></div>
-            <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">BE</p><p id="stat-be" class="text-lg font-black text-yellow-400"></p></div>
-            <div class="text-center"><p class="text-[7px] pixel-font text-purple-300">CHARGES</p><div class="flex items-center gap-1 justify-center"><p id="stat-charges" class="text-lg font-black text-purple-400"></p><div id="charge-dots" class="flex flex-row gap-0.5"></div></div></div>
-        </div>
-    </header>
+// ==========================
+// EVENTS
+// ==========================
+document.getElementById('addBtn').onclick = addTask;
 
-    <div id="gymBanner" class="hidden max-w-xl mx-auto px-4 mb-4">
-        <button onclick="openGym()" class="w-full bg-blue-600 border-2 border-white p-3 rounded-xl pixel-font text-[8px] animate-pulse uppercase shadow-xl text-white">[!] GYM CHALLENGE AVAILABLE: CLICK TO BATTLE</button>
-    </div>
+// ==========================
+// INIT
+// ==========================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
 
-    <div class="max-w-xl mx-auto px-4">
-        <div id="appManual" class="hidden mb-8 bg-purple-900/10 border border-purple-500/30 rounded-2xl p-6 space-y-4 shadow-2xl">
-            <h2 class="pixel-font text-[10px] text-purple-400 uppercase border-b border-purple-500/30 pb-2">App Guide</h2>
-            <div class="text-xs text-slate-400 space-y-4 leading-relaxed text-left">
-                <p><strong>Arc Architect:</strong> Create "Standard Arcs" for your PhD or "Daily Routines" for Grade 7 work.</p>
-                <p><strong>Siege:</strong> If you withdraw, Gym Leader HP remains depleted for your next attempt.</p>
-            </div>
-            <button onclick="toggleManual()" class="pixel-font text-[7px] text-center block w-full text-purple-500 uppercase mt-4">Close</button>
-        </div>
+render();
+</script>
 
-        <div id="whiteOutBox" class="hidden bg-red-900/30 border border-red-500/50 p-4 rounded-2xl mb-8 text-center"><p class="pixel-font text-[8px] text-red-400 uppercase">Whited out!</p><p class="text-[10px] text-slate-300 mt-1">Complete a task to revive.</p></div>
-
-        <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-8 shadow-xl">
-            <div class="flex flex-col gap-3">
-                <div class="flex gap-2"><input id="taskInput" type="text" placeholder="Add quest..." class="flex-grow bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-sm outline-none"><button onclick="addQuest()" class="bg-purple-600 px-6 rounded-xl font-bold">+</button></div>
-                <div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="pixel-font text-[7px] text-slate-500 uppercase">Arc:</span><select id="categorySelect" class="bg-slate-800 border border-slate-700 text-[10px] px-2 py-1 rounded-lg text-purple-300"></select></div><button onclick="toggleArcMenu()" class="text-[7px] pixel-font text-purple-500 uppercase">Edit Arcs</button></div>
-            </div>
-        </div>
-
-        <div id="arcMenu" class="hidden bg-purple-900/20 p-4 rounded-xl border border-purple-500/30 mb-8"><h3 class="pixel-font text-[8px] mb-4 text-purple-300 uppercase">Arc Architect</h3><div class="flex flex-col gap-4 mb-6"><div class="flex gap-2"><input id="newCatInput" type="text" placeholder="Name..." class="flex-grow bg-black/40 border border-purple-500/30 rounded-lg px-3 py-2 text-xs"><button onclick="addNewCategory()" class="bg-purple-500 text-white px-4 rounded-lg text-xs uppercase">Add</button></div><label class="flex items-center gap-2 ml-1"><input id="newCatDaily" type="checkbox" class="w-3 h-3"><span class="pixel-font text-[7px] text-blue-300 uppercase">Daily</span></label></div><div id="arcList" class="space-y-2"></div></div>
-
-        <div id="activeCampaign" class="space-y-6 mb-10"></div>
-        <div class="mt-12 p-4 bg-black/30 rounded-2xl border border-slate-800"><button onclick="toggleDex()" class="w-full flex items-center justify-between"><h2 class="pixel-font text-[9px] text-green-500 uppercase">Pokedex</h2><svg id="dexChev" class="chevron w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg></button><div id="dexGrid" class="grid grid-cols-1 gap-3 mt-6"></div></div>
-        <div class="mt-8 text-center pb-12"><button onclick="toggleDone()" class="w-full flex items-center justify-between px-4"><h2 class="pixel-font text-[9px] text-slate-500 uppercase">History</h2><svg id="doneChev" class="chevron w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg></button><div id="doneList" class="space-y-2 opacity-80 mt-4"></div><button onclick="wipe()" class="mt-16 text-[8px] pixel-font text-slate-700 hover:text-red-500 uppercase">Wipe Data</button><p class="text-[9px] pixel-font text-slate-500 uppercase mt-4">v13.1.13 Selection Lock Fix</p></div>
-    </div>
-
-    <script>
-        const VER = '13.1.13'; 
-        // FIX: Trainer IDs 15-22
-        const GYMS = [
-            { l: 3, leader: "Brock", badge: "Boulder", type: "rock", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/15.png", squad: [{id:74, n:"GEODUDE", t:"rock"}, {id:111, n:"RHYHORN", t:"ground"}, {id:95, n:"ONIX", t:"rock"}] },
-            { l: 6, leader: "Misty", badge: "Cascade", type: "water", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/16.png", squad: [{id:120, n:"STARYU", t:"water"}, {id:117, n:"SEADRA", t:"water"}, {id:121, n:"STARMIE", t:"psychic"}] },
-            { l: 9, leader: "Lt. Surge", badge: "Thunder", type: "electric", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/17.png", squad: [{id:100, n:"VOLTORB", t:"electric"}, {id:25, n:"PIKACHU", t:"electric"}, {id:26, n:"RAICHU", t:"electric"}] },
-            { l: 12, leader: "Erika", badge: "Rainbow", type: "grass", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/18.png", squad: [{id:71, n:"VICTREEBEL", t:"poison"}, {id:114, n:"TANGELA", t:"grass"}, {id:45, n:"VILEPLUME", t:"poison"}] },
-            { l: 15, leader: "Koga", badge: "Soul", type: "poison", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/19.png", squad: [{id:49, n:"VENOMOTH", t:"bug"}, {id:89, n:"MUK", t:"poison"}, {id:110, n:"WEEZING", t:"poison"}] },
-            { l: 18, leader: "Sabrina", badge: "Marsh", type: "psychic", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/20.png", squad: [{id:64, n:"KADABRA", t:"psychic"}, {id:122, n:"MR. MIME", t:"psychic"}, {id:65, n:"ALAKAZAM", t:"psychic"}] },
-            { l: 21, leader: "Blaine", badge: "Volcano", type: "fire", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/21.png", squad: [{id:58, n:"GROWLITHE", t:"fire"}, {id:77, n:"PONYTA", t:"fire"}, {id:59, n:"ARCANINE", t:"fire"}] },
-            { l: 24, leader: "Giovanni", badge: "Earth", type: "ground", img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/22.png", squad: [{id:34, n:"NIDOKING", t:"ground"}, {id:31, n:"NIDOQUEEN", t:"ground"}, {id:112, n:"RHYDON", t:"rock"}] }
-        ];
-        const BADGE_MAP = { "boulder": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/boulder-badge.png", "cascade": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/cascade-badge.png", "thunder": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/thunder-badge.png", "rainbow": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-badge.png", "soul": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-badge.png", "marsh": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/marsh-badge.png", "volcano": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/volcano-badge.png", "earth": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/earth-badge.png" };
-        const TYPE_ADVANTAGES = { "rock": ["water", "grass", "fighting", "ground"], "water": ["grass", "electric"], "electric": ["ground"], "grass": ["fire", "ice", "poison", "flying", "bug"], "poison": ["ground", "psychic"], "psychic": ["bug", "ghost", "dark"], "fire": ["water", "ground", "rock"], "ground": ["water", "grass", "ice"], "bug": ["fire", "flying", "rock"] };
-        const LEGENDARY_DICT = { 144: { name: "ARTICUNO", type: "ice", desc: "Legendary ice bird." }, 145: { name: "ZAPDOS", type: "electric", desc: "Legendary lightning bird." }, 146: { name: "MOLTRES", type: "fire", desc: "Legendary fire bird." }, 150: { name: "MEWTWO", type: "psychic", desc: "Science creation." }, 151: { name: "MEW", type: "psychic", desc: "Mythical mirage." } };
-
-        let be = JSON.parse(localStorage.getItem('m_be')) || 0;
-        let badges = JSON.parse(localStorage.getItem('m_badges')) || [];
-        let whitedOut = JSON.parse(localStorage.getItem('m_whiteout')) || false;
-        let dex = JSON.parse(localStorage.getItem('m_dex')) || [];
-        let tasks = JSON.parse(localStorage.getItem('m_tasks')) || [];
-        let arcs = JSON.parse(localStorage.getItem('m_arcs')) || [];
-        let xp = JSON.parse(localStorage.getItem('m_xp')) || 0;
-        let battery = JSON.parse(localStorage.getItem('m_battery')) || 0;
-        let charges = JSON.parse(localStorage.getItem('m_charges')) || 0;
-        let collapsedArcs = JSON.parse(localStorage.getItem('m_coll_arcs')) || [];
-        let dexCollapsed = JSON.parse(localStorage.getItem('m_dex_coll')) || false;
-        let doneCollapsed = JSON.parse(localStorage.getItem('m_done_coll')) || false;
-        let gymHP = JSON.parse(localStorage.getItem('m_gym_hp')) || null;
-        let editingId = null; let expandedTaskId = null; let dexExpId = null;
-        let pTeam = []; let bTeam = []; let pActive = 0; let bActive = 0;
-
-        const getArt = (id, shiny = false) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${shiny ? 'shiny/' : ''}${id}.png?v=${VER}`;
-        function getXPLimit() { return badges.some(b => b.toLowerCase() === "cascade") ? 475 : 500; }
-        function getLvl() { return Math.floor(xp / getXPLimit()) + 1; }
-
-        function checkDailyReset() {
-            const today = new Date().toISOString().split('T')[0];
-            let changed = false;
-            tasks.forEach(q => {
-                const arc = arcs.find(a => a.name === q.category);
-                if (arc && arc.daily && q.done && q.last !== today) { q.done = false; changed = true; }
-            });
-            if (changed) save();
-        }
-
-        function addNewCategory() { const i = document.getElementById('newCatInput'); const d = document.getElementById('newCatDaily'); if(i.value.trim()){ arcs.push({name: i.value.trim(), daily: d.checked}); i.value=''; d.checked=false; saveCategories(); } }
-        function saveCategories() { localStorage.setItem('m_arcs', JSON.stringify(arcs)); render(); }
-        async function addQuest() {
-            const i = document.getElementById('taskInput'); const c = document.getElementById('categorySelect').value; if (!i.value.trim() || arcs.length === 0) return;
-            const id = Math.floor(Math.random() * 151) + 1;
-            try {
-                const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`); const d = await r.json();
-                tasks.push({ id: Date.now(), text: i.value.trim(), category: c, done: false, mb: false, pokeID: id, name: d.name.toUpperCase(), type: d.types[0].type.name, lvl: getLvl(), desc: "Wild Kanto encounter." });
-                i.value = ''; save();
-            } catch (e) { save(); }
-        }
-
-        function toggleQuest(id) {
-            const q = tasks.find(t => t.id === id); q.done = !q.done;
-            if (q.done) {
-                if (whitedOut) whitedOut = false; q.last = new Date().toISOString().split('T')[0];
-                let bg = q.mb ? 50 : 15; be += bg; totalXP = xp + 50; battery++; if (battery >= 5) { charges++; battery = 0; }
-                if (!dex.find(p => p.tID === q.id)) { dex.push({ tID: q.id, pokeID: q.pokeID, name: q.name, type: q.type, shiny: false, desc: "A quest Pokémon.", lvl: q.lvl }); }
-            }
-            save();
-        }
-
-        function openGym() {
-            const g = GYMS.find(g => getLvl() >= g.l && !badges.includes(g.badge)); if (!g) return;
-            toggleBattleScreen(true); document.getElementById('gymTitle').innerText = `${g.leader}`; document.getElementById('leaderImg').src = `${g.img}?v=${VER}`; document.getElementById('battleLog').innerHTML = `> Battle Log Cleared.`;
-            document.getElementById('deployBtn').classList.add('hidden'); document.getElementById('battleMoves').classList.add('hidden'); document.getElementById('teamPicker').classList.remove('hidden');
-            if (!gymHP || gymHP.badge !== g.badge) { bTeam = g.squad.map(p => ({ ...p, hp: 100 })); } else { bTeam = gymHP.squad; }
-            pTeam = []; bActive = bTeam.findIndex(p => p.hp > 0); pActive = 0;
-            const p = document.getElementById('teamPicker'); p.innerHTML = '';
-            dex.filter(x => x.lvl <= g.l).forEach(x => {
-                const card = document.createElement('img'); card.src = getArt(x.pokeID, x.shiny); card.className = "w-10 h-10 pixelated border border-slate-700 rounded cursor-pointer"; card.onclick = () => pickTeam(x); p.appendChild(card);
-            });
-            upUI();
-        }
-
-        function pickTeam(x) { 
-            if (pTeam.length < 3 && !pTeam.find(t => t.tID === x.tID)) { 
-                pTeam.push({ ...x, hp: 100 }); upUI(); 
-                document.getElementById('deployBtn').classList.remove('hidden'); 
-            } 
-        }
-        function deployTeam() { document.getElementById('teamPicker').classList.add('hidden'); document.getElementById('deployBtn').classList.add('hidden'); document.getElementById('battleMoves').classList.remove('hidden'); addLog("Strategic strike engaged!"); }
-
-        function executeMove(type) {
-            if (pActive >= pTeam.length || bActive >= 3) return;
-            let cost = type === 'basic' ? 10 : (type === 'elemental' ? 30 : 100); if (be < cost) { addLog("Low energy!"); return; }
-            be -= cost; let dmg = type === 'basic' ? 15 : 30; const p = pTeam[pActive]; const b = bTeam[bActive];
-            if (type === 'elemental' && TYPE_ADVANTAGES[b.t]?.includes(p.type)) { dmg *= 2.5; addLog("Weakness hit!"); }
-            b.hp -= dmg; addLog(`${p.name} deals ${Math.round(dmg)}.`);
-            if (b.hp <= 0) { b.hp = 0; bActive++; addLog(`${b.n} fainted!`); upUI(); checkEnd(); }
-            else { let bd = 12 + (getLvl() * 2); p.hp -= bd; addLog(`${bTeam[bActive].n} counters!`); if (p.hp <= 0) { p.hp = 0; pActive++; addLog(`${p.name} whited out!`); } upUI(); checkEnd(); }
-        }
-
-        function checkEnd() {
-            const g = GYMS.find(g => !badges.includes(g.badge)); gymHP = { badge: g.badge, squad: bTeam }; localStorage.setItem('m_gym_hp', JSON.stringify(gymHP));
-            if (bActive >= 3) { alert(`Victory!`); badges.push(g.badge); gymHP = null; toggleBattleScreen(false); save(); }
-            else if (pActive >= pTeam.length) { alert("Whited out!"); whitedOut = true; toggleBattleScreen(false); render(); }
-        }
-
-        function save() { localStorage.setItem('m_xp', JSON.stringify(xp)); localStorage.setItem('m_be', JSON.stringify(be)); localStorage.setItem('m_tasks', JSON.stringify(tasks)); localStorage.setItem('m_dex', JSON.stringify(dex)); localStorage.setItem('m_charges', JSON.stringify(charges)); localStorage.setItem('m_battery', JSON.stringify(battery)); localStorage.setItem('m_whiteout', JSON.stringify(whitedOut)); localStorage.setItem('m_badges', JSON.stringify(badges)); render(); }
-        function addLog(msg) { const log = document.getElementById('battleLog'); log.innerHTML += `<br>> ${msg}`; log.scrollTop = log.scrollHeight; }
-        function upUI() {
-            const ba = bTeam[bActive]; const pa = pTeam[pActive];
-            if(ba) { document.getElementById('sprite-boss-active').src = getArt(ba.id); document.getElementById('hp-boss-active').style.width = ba.hp + '%'; document.getElementById('bossActiveName').innerText = ba.n; }
-            if(pa) { document.getElementById('sprite-player-active').src = getArt(pa.pokeID, pa.shiny); document.getElementById('hp-player-active').style.width = pa.hp + '%'; document.getElementById('playerActiveName').innerText = pa.name; }
-            const bB = document.getElementById('bossBench'); bB.innerHTML = ''; bTeam.forEach((p, idx) => { if(idx !== bActive) bB.innerHTML += `<img src="${getArt(p.id)}" class="w-8 h-8 pixelated ${p.hp <= 0 ? 'grayscale opacity-10' : ''}">`; });
-            const pB = document.getElementById('playerBench'); pB.innerHTML = ''; pTeam.forEach((p, idx) => { if(idx !== pActive) pB.innerHTML += `<img src="${getArt(p.pokeID, p.shiny)}" class="bench-sprite pixelated ${p.hp <= 0 ? 'grayscale opacity-10' : ''}">`; });
-            document.getElementById('battleBEMeter').style.width = Math.min(100, be) + '%'; document.getElementById('beLabel').innerText = `ENERGY: ${be}`; 
-        }
-
-        function render() {
-            const s = document.getElementById('activeCampaign'); const cG = document.getElementById('dexGrid'); const cS = document.getElementById('categorySelect'); const aL = document.getElementById('arcList'); if (!s) return;
-            s.innerHTML = ''; cG.innerHTML = ''; aL.innerHTML = ''; const cur = cS.value; cS.innerHTML = '';
-            arcs.forEach(a => { cS.innerHTML += `<option value="${a.name}" ${a.name === cur ? 'selected' : ''}>${a.name}</option>`; aL.innerHTML += `<div class="flex items-center justify-between bg-black/30 p-2 rounded border border-purple-500/20"><span class="text-[10px] ${a.daily ? 'text-blue-400' : ''}">${a.name}</span><button onclick="removeCategory('${a.name}')" class="w-3 h-3 text-slate-700">X</button></div>`; });
-            document.getElementById('gymBanner').classList.toggle('hidden', !GYMS.find(g => getLvl() >= g.l && !badges.includes(g.badge)) || whitedOut);
-            arcs.forEach(arc => {
-                const act = tasks.filter(t => t.category === arc.name && !t.done);
-                if (act.length > 0) {
-                    let items = act.map(t => `<div class="task-card p-3 rounded-xl flex items-center gap-4 ${t.mb ? 'master-priority' : ''}"><img src="${getArt(t.pokeID)}" class="w-10 h-10 pixelated brightness-0 opacity-10"><div class="flex-grow min-w-0"><p class="text-sm font-semibold truncate">${t.text}</p></div><button onclick="toggleQuest(${t.id})" class="text-green-500 font-bold text-xl">✓</button></div>`).join('');
-                    s.innerHTML += `<div class="mb-6"><h3 class="pixel-font text-[7px] p-2 uppercase">${arc.name}</h3><div class="space-y-3">${items}</div></div>`;
-                }
-            });
-            document.getElementById('lvl-text').innerText = `LVL ${getLvl()}`; document.getElementById('stat-dex').innerText = dex.length; document.getElementById('stat-be').innerText = be; document.getElementById('stat-charges').innerText = charges;
-            document.getElementById('badge-container').innerHTML = badges.map(b => `<img src="${BADGE_MAP[b.toLowerCase()]}?v=${VER}" class="w-7 h-7 pixelated">`).join('');
-        }
-
-        function toggleBattleScreen(v) { if (!v && bTeam.length > 0) { const g = GYMS.find(g => !badges.includes(g.badge)); gymHP = { badge: g.badge, squad: bTeam }; localStorage.setItem('m_gym_hp', JSON.stringify(gymHP)); } document.getElementById('battleScreen').classList.toggle('hidden', !v); }
-        function toggleManual() { document.getElementById('appManual').classList.toggle('hidden'); }
-        function toggleArcMenu() { document.getElementById('arcMenu').classList.toggle('hidden'); render(); }
-        function wipe() { if(confirm("Wipe?")){ localStorage.clear(); location.reload(); } }
-        checkDailyReset(); render();
-    </script>
 </body>
 </html>
